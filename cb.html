@@ -1,0 +1,2814 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Circuit Breakers - Analog Thermal Defence</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            blue: '#0d529c',
+                            darkblue: '#084182',
+                            accent: '#00f0ff',
+                            slate: '#0f172a',
+                            darkCard: '#111827',
+                            emerald: '#10b981',
+                            crimson: '#ef4444'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Three.js and OrbitControls for 3D WebGL Render -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --page-bg: #f3f5f7;
+            --page-panel: #ffffff;
+            --page-panel-alt: #eef3f8;
+            --page-border: rgba(13, 82, 156, 0.12);
+            --page-text: #1f2937;
+            --page-muted: #5f6f82;
+            --page-heading: #0c1d2d;
+            --page-accent: #0d529c;
+            --page-accent-2: #0b3f7a;
+            --page-accent-soft: rgba(13, 82, 156, 0.08);
+            --page-shadow: rgba(12, 29, 45, 0.08);
+            --page-strong: #0c1723;
+            --page-inverse: #ffffff;
+            --page-success: #1f8f5f;
+            --page-warning: #a45d00;
+            --page-border-strong: rgba(12, 29, 45, 0.14);
+            --page-code: #0b2a45;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #edf3f7;
+            color: #111827;
+            line-height: 1.6;
+            letter-spacing: 0.01em;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        body.dark-mode {
+            background: #0a1220;
+            color: #e5edf7;
+        }
+
+        body.dark-mode .formal-header {
+            background: #1c3e5f !important;
+            border-bottom-color: rgba(148, 163, 184, 0.18) !important;
+        }
+
+        body.dark-mode .glass-card,
+        body.dark-mode .settings-panel,
+        body.dark-mode .settings-group,
+        body.dark-mode footer,
+        body.dark-mode #rfq-modal > div,
+        body.dark-mode #toast-notification {
+            background: rgba(15, 23, 42, 0.9) !important;
+            border-color: rgba(148, 163, 184, 0.18) !important;
+            box-shadow: 0 14px 30px rgba(2, 6, 23, 0.38) !important;
+        }
+
+        body.dark-mode section,
+        body.dark-mode footer,
+        body.dark-mode #rfq-modal,
+        body.dark-mode #toast-notification,
+        body.dark-mode .glass-card,
+        body.dark-mode .settings-panel,
+        body.dark-mode .settings-group {
+            color: #e5edf7;
+        }
+
+        body.dark-mode .text-white,
+        body.dark-mode .text-slate-100,
+        body.dark-mode .text-slate-200,
+        body.dark-mode .text-slate-300,
+        body.dark-mode .text-slate-400,
+        body.dark-mode .text-slate-500,
+        body.dark-mode .text-slate-600,
+        body.dark-mode .text-slate-700,
+        body.dark-mode .text-slate-800,
+        body.dark-mode .text-slate-900,
+        body.dark-mode h1,
+        body.dark-mode h2,
+        body.dark-mode h3,
+        body.dark-mode h4,
+        body.dark-mode h5,
+        body.dark-mode h6,
+        body.dark-mode p,
+        body.dark-mode li,
+        body.dark-mode td,
+        body.dark-mode th,
+        body.dark-mode label,
+        body.dark-mode span,
+        body.dark-mode div,
+        body.dark-mode a {
+            color: #e5edf7 !important;
+        }
+
+        body.dark-mode .text-cyan-400,
+        body.dark-mode .text-cyan-300,
+        body.dark-mode .text-emerald-400,
+        body.dark-mode .text-emerald-500,
+        body.dark-mode .text-indigo-400,
+        body.dark-mode .text-rose-400,
+        body.dark-mode .text-cyan-500 {
+            color: #8bc7ff !important;
+        }
+
+        body.dark-mode .bg-slate-900,
+        body.dark-mode .bg-slate-950,
+        body.dark-mode .bg-slate-800,
+        body.dark-mode [class~="bg-[#060913]"],
+        body.dark-mode [class~="bg-[#0a0f1d]"],
+        body.dark-mode [class~="bg-[#0f172a]"],
+        body.dark-mode .bg-slate-50 {
+            background: #101b2b !important;
+        }
+
+        body.dark-mode .settings-row select,
+        body.dark-mode .settings-row input,
+        body.dark-mode input,
+        body.dark-mode textarea,
+        body.dark-mode select {
+            background: #0b1320;
+            color: #e5edf7;
+            border-color: rgba(148, 163, 184, 0.2);
+        }
+
+        body.dark-mode .toggle-switch {
+            background: #374151;
+        }
+
+        body.dark-mode .toggle-switch.on {
+            background: linear-gradient(135deg, #63b3ff, #0d529c);
+        }
+
+        body.dark-mode .formal-cta {
+            box-shadow: 0 12px 22px rgba(16, 85, 155, 0.3);
+        }
+
+        body section,
+        body footer,
+        body #rfq-modal,
+        body #toast-notification {
+            color: #111827;
+        }
+
+        body section h1,
+        body section h2,
+        body section h3,
+        body section h4,
+        body section h5,
+        body section h6,
+        body section p,
+        body section li,
+        body section td,
+        body section th,
+        body section label,
+        body section span,
+        body section div,
+        body section a,
+        body footer * {
+            color: inherit;
+        }
+
+        body section [class*='text-white'],
+        body section [class*='text-slate-100'],
+        body section [class*='text-slate-200'],
+        body section [class*='text-slate-300'],
+        body section [class*='text-slate-400'],
+        body section [class*='text-slate-500'],
+        body section [class*='text-slate-600'],
+        body section [class*='text-slate-700'],
+        body section [class*='text-slate-800'],
+        body section [class*='text-slate-900'] {
+            color: #111827 !important;
+        }
+
+        body section [class*='text-cyan-'],
+        body section [class*='text-emerald-'],
+        body section [class*='text-indigo-'],
+        body section [class*='text-rose-'] {
+            color: #0d529c !important;
+        }
+
+        body section [class*='bg-slate-950'],
+        body section [class*='bg-slate-900'],
+        body section [class*='bg-slate-800'],
+        body section [class*='bg-slate-700'],
+        body section [class*='bg-[#060913]'],
+        body section [class*='bg-[#0a0f1d]'],
+        body section [class*='bg-[#0f172a]'] {
+            background-color: #f8fafc !important;
+        }
+
+        body section .glass-card,
+        body section .bg-white,
+        body section .bg-slate-50 {
+            background: #ffffff !important;
+            border-color: rgba(15, 23, 42, 0.12) !important;
+        }
+
+        body section .border-slate-800,
+        body section .border-slate-700,
+        body section .border-slate-800\/80,
+        body section .border-slate-700\/80,
+        body section .border-slate-800\/60,
+        body section .border-slate-700\/60 {
+            border-color: rgba(15, 23, 42, 0.14) !important;
+        }
+
+        body section .text-base,
+        body section .text-sm,
+        body section .text-xs,
+        body section .text-lg,
+        body section .text-xl,
+        body section .text-2xl,
+        body section .text-3xl,
+        body section .text-4xl {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+        }
+
+        .code-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(15, 23, 42, 0.12);
+            box-shadow: 0 8px 22px rgba(12, 29, 45, 0.08);
+        }
+
+        .glass-card-hover {
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+        }
+
+        .glass-card-hover:hover {
+            border-color: rgba(13, 82, 156, 0.2);
+            box-shadow: 0 14px 30px rgba(12, 29, 45, 0.08);
+            transform: translateY(-3px);
+        }
+
+        body section .formal-cta,
+        body section .bg-brand-blue {
+            color: #ffffff !important;
+        }
+
+        body section .rounded-2xl,
+        body section .rounded-xl,
+        body section .rounded-lg {
+            border-radius: 16px;
+        }
+
+        body section .max-w-7xl {
+            max-width: 1180px;
+        }
+
+        body section .text-4xl,
+        body section .text-3xl,
+        body section .text-2xl,
+        body section .text-xl,
+        body section .text-lg {
+            letter-spacing: -0.03em;
+        }
+        .formal-header {
+            background: #1c3e5f !important;
+            border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08) !important;
+        }
+        .formal-cta {
+            background: linear-gradient(135deg, #0d529c, #1d6ecb) !important;
+            color: #ffffff !important;
+            border: 1px solid rgba(13, 82, 156, 0.25) !important;
+            box-shadow: 0 8px 18px rgba(13, 82, 156, 0.18);
+        }
+        .formal-cta:hover {
+            background: linear-gradient(135deg, #0b4385, #1a5eb5) !important;
+            color: #ffffff !important;
+        }
+        .settings-panel {
+            position: fixed;
+            top: 88px;
+            right: 20px;
+            width: min(360px, calc(100vw - 32px));
+            background: rgba(255, 255, 255, 0.98);
+            border: 1px solid rgba(13, 82, 156, 0.08);
+            border-radius: 18px;
+            box-shadow: 0 22px 48px rgba(12, 29, 45, 0.14);
+            z-index: 60;
+            overflow: hidden;
+        }
+        .settings-panel.hidden {
+            display: none;
+        }
+        .settings-header {
+            background: linear-gradient(135deg, rgba(13,82,156,0.08), rgba(148,163,184,0.08));
+        }
+        .settings-group {
+            border: 1px solid rgba(13, 82, 156, 0.08);
+            border-radius: 12px;
+            background: #f8fafc;
+            overflow: hidden;
+        }
+        .settings-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 0.8rem 0.9rem;
+            border-bottom: 1px solid rgba(13,82,156,0.06);
+        }
+        .settings-row:last-child {
+            border-bottom: none;
+        }
+        .settings-row label {
+            display: block;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--page-strong);
+        }
+        .settings-row small {
+            display: block;
+            font-size: 0.68rem;
+            color: var(--page-muted);
+            margin-top: 2px;
+        }
+        .settings-row select,
+        .settings-row input {
+            width: 150px;
+            border: 1px solid rgba(13,82,156,0.14);
+            border-radius: 10px;
+            padding: 0.5rem 0.65rem;
+            background: #ffffff;
+            color: var(--page-text);
+            font-size: 0.75rem;
+        }
+        .toggle-wrap {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .toggle-switch {
+            position: relative;
+            width: 46px;
+            height: 24px;
+            border-radius: 999px;
+            background: #d7dde6;
+            border: 1px solid rgba(13,82,156,0.12);
+            transition: background 0.2s ease;
+            cursor: pointer;
+        }
+        .toggle-switch::after {
+            content: "";
+            position: absolute;
+            top: 2px;
+            left: 3px;
+            width: 17px;
+            height: 17px;
+            border-radius: 50%;
+            background: #ffffff;
+            box-shadow: 0 2px 6px rgba(12,29,45,0.14);
+            transition: left 0.2s ease;
+        }
+        .toggle-switch.on {
+            background: linear-gradient(135deg, #0d529c, #0b3f7a);
+        }
+        .toggle-switch.on::after {
+            left: 24px;
+        }
+        .slider-row input[type="range"] {
+            width: 100%;
+            accent-color: #0d529c;
+        }
+        .settings-panel .small-note {
+            font-size: 0.7rem;
+            color: var(--page-muted);
+            line-height: 1.5;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #edf1f5;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #b8c4cf;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #0d529c;
+        }
+
+        .settings-panel {
+            top: 84px;
+            right: 16px;
+            width: min(330px, calc(100vw - 24px));
+            max-height: calc(100vh - 100px);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .settings-panel.hidden {
+            display: none;
+        }
+
+        .settings-panel > .settings-header {
+            flex: 0 0 auto;
+            padding: 0.7rem 0.85rem;
+        }
+
+        .settings-panel > .p-4 {
+            min-height: 0;
+            overflow-y: auto;
+            padding: 0.65rem;
+        }
+
+        .settings-panel > .p-4 > * + * {
+            margin-top: 0.55rem;
+        }
+
+        .settings-group {
+            border-radius: 8px;
+        }
+
+        .settings-group > summary {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            padding: 0.58rem 0.7rem;
+            color: #172b40;
+            font-size: 0.75rem;
+            font-weight: 700;
+            list-style: none;
+        }
+
+        .settings-group > summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .settings-group > summary::after {
+            content: "+";
+            color: #155b9a;
+            font-size: 1rem;
+        }
+
+        .settings-group[open] > summary::after {
+            content: "−";
+        }
+
+        .settings-row {
+            gap: 8px;
+            padding: 0.48rem 0.6rem;
+        }
+
+        .settings-row label {
+            font-size: 0.76rem;
+        }
+
+        .settings-row small {
+            font-size: 0.63rem;
+            line-height: 1.25;
+        }
+
+        .settings-row select,
+        .settings-row input:not([type="range"]) {
+            width: 132px;
+            max-width: 48%;
+            padding: 0.38rem 0.48rem;
+            border-radius: 6px;
+            font-size: 0.7rem;
+        }
+
+        .settings-row input[type="range"] {
+            margin-top: 0.35rem;
+        }
+
+        body:not(.dark-mode) section [class*="text-white"],
+        body:not(.dark-mode) section [class*="text-slate-"] {
+            color: #172b40 !important;
+        }
+
+        body:not(.dark-mode) section [class*="text-cyan-"],
+        body:not(.dark-mode) section [class*="text-emerald-"],
+        body:not(.dark-mode) section [class*="text-indigo-"],
+        body:not(.dark-mode) section [class*="text-rose-"] {
+            color: #155b9a !important;
+        }
+
+        body:not(.dark-mode) section .formal-cta,
+        body:not(.dark-mode) section button.bg-brand-blue {
+            color: #ffffff !important;
+        }
+
+        body:not(.dark-mode) #lab .viewer-toolbar > div:first-child,
+        body:not(.dark-mode) #lab .viewer-bottom-controls > div:first-child,
+        body:not(.dark-mode) #lab #btn-inspect-mode,
+        body:not(.dark-mode) #lab #pcb-export-button,
+        body:not(.dark-mode) #lab #btn-autorotate,
+        body:not(.dark-mode) #lab .viewer-bottom-controls button {
+            background: rgba(15, 23, 42, 0.94) !important;
+            border-color: rgba(148, 163, 184, 0.45) !important;
+            color: #f8fafc !important;
+        }
+
+        body:not(.dark-mode) #lab #btn-toggle-trip {
+            background: #be123c !important;
+            border-color: #9f1239 !important;
+            color: #ffffff !important;
+        }
+
+        body:not(.dark-mode) #lab #status-text:not(.text-rose-400) {
+            color: #86efac !important;
+        }
+
+        body:not(.dark-mode) #lab #status-text.text-rose-400 {
+            color: #fda4af !important;
+        }
+
+        body:not(.dark-mode) {
+            background-color: #edf3f7 !important;
+            color: #172b40;
+        }
+
+        body.dark-mode section {
+            background-color: #0b1422 !important;
+            border-color: rgba(148, 163, 184, 0.16) !important;
+            color: #e5edf7;
+        }
+
+        body.dark-mode section [class*="bg-slate-"],
+        body.dark-mode section [class*="bg-white"],
+        body.dark-mode section .glass-card {
+            background-color: #132136 !important;
+            border-color: rgba(148, 163, 184, 0.2) !important;
+        }
+
+        body.dark-mode section [class*="text-white"],
+        body.dark-mode section [class*="text-slate-"] {
+            color: #e5edf7 !important;
+        }
+
+        body.dark-mode section [class*="text-cyan-"],
+        body.dark-mode section [class*="text-emerald-"],
+        body.dark-mode section [class*="text-indigo-"],
+        body.dark-mode section [class*="text-rose-"] {
+            color: #8bc7ff !important;
+        }
+
+        body.dark-mode section [class*="text-transparent"] {
+            color: transparent !important;
+        }
+
+        body.dark-mode section .formal-cta,
+        body.dark-mode section button.bg-brand-blue {
+            color: #ffffff !important;
+        }
+
+        body.dark-mode {
+            background-color: #0a1220 !important;
+            color: #e5edf7;
+        }
+
+        body.dark-mode section .border-slate-800,
+        body.dark-mode section .border-slate-700,
+        body.dark-mode section [class*="border-slate-"] {
+            border-color: rgba(148, 163, 184, 0.2) !important;
+        }
+
+        body.dark-mode footer {
+            background: #080f19 !important;
+            color: #cbd5e1 !important;
+        }
+
+        body.dark-mode .settings-panel,
+        body.dark-mode .settings-group {
+            background: #111d2d !important;
+            border-color: rgba(148, 163, 184, 0.2) !important;
+        }
+
+        body.dark-mode .settings-panel h3,
+        body.dark-mode .settings-panel label,
+        body.dark-mode .settings-panel small,
+        body.dark-mode .settings-panel .small-note,
+        body.dark-mode .settings-group > summary {
+            color: #e5edf7 !important;
+        }
+
+        body.dark-mode .settings-group > summary::after {
+            color: #8bc7ff;
+        }
+
+        body.dark-mode .settings-panel select,
+        body.dark-mode .settings-panel input:not([type="range"]) {
+            background: #0b1422 !important;
+            color: #e5edf7 !important;
+            border-color: rgba(148, 163, 184, 0.28) !important;
+        }
+
+        body {
+            letter-spacing: 0;
+        }
+
+        body section h1,
+        body section h2,
+        body section h3,
+        body section h4,
+        body section .text-4xl,
+        body section .text-3xl,
+        body section .text-2xl,
+        body section .text-xl,
+        body section .text-lg {
+            letter-spacing: 0 !important;
+        }
+
+        body section > .absolute {
+            display: none !important;
+        }
+
+        .glass-card {
+            backdrop-filter: none;
+            box-shadow: 0 2px 8px rgba(12, 29, 45, 0.07);
+        }
+
+        .glass-card-hover:hover {
+            transform: none;
+            box-shadow: 0 4px 12px rgba(12, 29, 45, 0.1);
+        }
+
+        body section .rounded-2xl,
+        body section .rounded-xl,
+        body section .rounded-lg {
+            border-radius: 8px !important;
+        }
+
+        .formal-cta {
+            background: #155b9a !important;
+            box-shadow: none;
+        }
+
+        body section h1 span[class*="text-transparent"] {
+            background: none !important;
+            color: #155b9a !important;
+            -webkit-text-fill-color: #155b9a !important;
+        }
+
+        body section button[class*="bg-gradient-to-r"] {
+            background: #155b9a !important;
+            color: #ffffff !important;
+        }
+
+        body.dark-mode section h1 span[class*="text-transparent"] {
+            color: #8bc7ff !important;
+            -webkit-text-fill-color: #8bc7ff !important;
+        }
+
+        .pcb-export-menu {
+            position: absolute;
+            right: 0;
+            bottom: calc(100% + 8px);
+            min-width: 145px;
+            padding: 4px;
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            border-radius: 8px;
+            background: #ffffff;
+            box-shadow: 0 8px 22px rgba(12, 29, 45, 0.16);
+            z-index: 30;
+        }
+
+        .pcb-export-menu.hidden {
+            display: none;
+        }
+
+        .pcb-export-menu button {
+            display: block;
+            width: 100%;
+            padding: 0.5rem 0.65rem;
+            border-radius: 5px;
+            color: #172b40;
+            text-align: left;
+            font-size: 0.75rem;
+        }
+
+        .pcb-export-menu button:hover {
+            background: #edf3f7;
+        }
+
+        body.dark-mode .pcb-export-menu {
+            background: #111d2d;
+            border-color: rgba(148, 163, 184, 0.25);
+        }
+
+        body.dark-mode .pcb-export-menu button {
+            color: #e5edf7 !important;
+        }
+
+        body.dark-mode .pcb-export-menu button:hover {
+            background: #1d2c40;
+        }
+
+        body:not(.dark-mode) {
+            background-color: #ffffff !important;
+        }
+
+        body:not(.dark-mode) section {
+            background-color: #ffffff !important;
+            border-color: transparent !important;
+        }
+
+        body:not(.dark-mode) section .glass-card,
+        body:not(.dark-mode) section [class*="bg-slate-950"],
+        body:not(.dark-mode) section [class*="bg-slate-900"],
+        body:not(.dark-mode) section [class*="bg-slate-800"],
+        body:not(.dark-mode) section [class*="bg-slate-50"] {
+            background-color: transparent !important;
+            border-color: #e5ebf1 !important;
+            box-shadow: none !important;
+        }
+
+        body:not(.dark-mode) #canvas-container {
+            background-color: #0a0f1d !important;
+        }
+
+        .brand-logo {
+            display: block;
+            width: 76px;
+            height: 76px;
+            flex: 0 0 auto;
+            object-fit: contain;
+            background: #7caad8;
+            border-radius: 4px;
+        }
+
+        #mobile-nav-button {
+            display: none;
+        }
+
+        #canvas-container {
+            height: clamp(320px, 65vh, 540px);
+        }
+
+        #viewer-section,
+        #lab {
+            scroll-margin-top: 88px;
+        }
+
+        @media (max-width: 767px) {
+            .brand-logo {
+                width: 64px;
+                height: 64px;
+            }
+
+            #mobile-nav-button {
+                display: inline-flex;
+            }
+
+            #primary-nav.open {
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                display: flex !important;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0;
+                padding: 0.35rem 1rem 0.75rem;
+                background: #1c3e5f;
+                border-top: 1px solid rgba(255, 255, 255, 0.12);
+                box-shadow: 0 8px 18px rgba(12, 29, 45, 0.16);
+            }
+
+            #primary-nav a {
+                padding: 0.75rem 0.25rem;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            }
+
+            .header-actions {
+                gap: 0.4rem;
+            }
+
+            .header-action-label {
+                display: none;
+            }
+
+            .hero-copy {
+                max-width: none;
+            }
+
+            .hero-highlights {
+                grid-template-columns: 1fr;
+            }
+
+            .hero-compliance {
+                justify-content: flex-start;
+                flex-wrap: wrap;
+                gap: 0.65rem 1rem;
+            }
+
+            .viewer-toolbar {
+                top: 0.5rem;
+                left: 0.5rem;
+                right: 0.5rem;
+                align-items: flex-start;
+            }
+
+            .viewer-toolbar > div:last-child {
+                align-items: flex-end;
+                flex-direction: column;
+            }
+
+            .viewer-bottom-controls {
+                bottom: 0.5rem;
+                left: 0.5rem;
+                right: 0.5rem;
+                align-items: flex-end;
+            }
+
+            .viewer-bottom-controls > div:first-child span {
+                display: none;
+            }
+
+            .viewer-bottom-controls > div:last-child {
+                gap: 0.3rem;
+            }
+
+            #pcb-export-button span {
+                display: none;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .brand-logo {
+                width: 52px;
+                height: 52px;
+            }
+
+            .header-actions > button {
+                padding-left: 0.55rem;
+                padding-right: 0.55rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .settings-panel {
+                top: 76px;
+                right: 8px;
+                width: min(320px, calc(100vw - 16px));
+                max-height: calc(100vh - 88px);
+            }
+        }
+
+        body.dark-mode section [class*="text-white"],
+        body.dark-mode section [class*="text-slate-"] {
+            color: #e5edf7 !important;
+        }
+
+        body.dark-mode section [class*="text-cyan-"],
+        body.dark-mode section [class*="text-emerald-"],
+        body.dark-mode section [class*="text-indigo-"],
+        body.dark-mode section [class*="text-rose-"] {
+            color: #9acfff !important;
+        }
+
+        body.dark-mode section [class*="text-transparent"] {
+            color: transparent !important;
+        }
+
+        body.dark-mode section button {
+            color: #e5edf7 !important;
+        }
+
+        body.dark-mode section .formal-cta,
+        body.dark-mode section button.bg-brand-blue,
+        body.dark-mode section #btn-toggle-trip {
+            color: #ffffff !important;
+        }
+
+        html[lang="ar"] body {
+            direction: ltr;
+        }
+
+        html[lang="ar"] body :is(h1, h2, h3, h4, h5, h6, p, li, td, th, label, small, summary, span, a) {
+            direction: rtl;
+            text-align: right;
+            unicode-bidi: plaintext;
+        }
+    </style>
+</head>
+<body class="bg-[#f3f5f7] text-slate-800 antialiased selection:bg-slate-800 selection:text-white">
+
+    <!-- Navigation Header -->
+    <header class="formal-header fixed top-0 left-0 right-0 z-50 glass-card border-b border-slate-800/80 bg-[#0f2027]/90">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between relative">
+            <!-- Brand -->
+            <a href="#" class="flex items-center group" aria-label="Circuit Breakers home">
+                <img src="CB LOGO.png" alt="Circuit Breakers Logo" class="brand-logo transition-transform duration-300 group-hover:scale-105">
+            </a>
+
+            <!-- Navigation Links -->
+            <nav id="primary-nav" class="mobile-nav hidden md:flex items-center space-x-8 text-sm font-medium text-slate-200">
+                <a href="#home" class="hover:text-white transition-colors">Overview</a>
+                <a href="#architecture" class="hover:text-white transition-colors">Architecture</a>
+                <a href="#specs" class="hover:text-white transition-colors">Components</a>
+                <a href="#roi" class="hover:text-white transition-colors">Pricing &amp; ROI</a>
+                <a href="#compliance" class="hover:text-white transition-colors">Standards &amp; Impact</a>
+                <a href="#lab" class="hover:text-white transition-colors">3D Prototype</a>
+            </nav>
+
+            <!-- Header Action Button -->
+            <div class="header-actions flex items-center space-x-3">
+                <button id="mobile-nav-button" onclick="toggleMobileNavigation()" aria-expanded="false" aria-controls="primary-nav" aria-label="Open navigation" class="bg-white/5 hover:bg-white/10 text-white border border-white/15 px-3 py-2.5 rounded-lg text-sm">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <button id="settings-button" aria-expanded="false" aria-controls="settings-panel" onclick="toggleSettingsPanel()" class="bg-white/5 hover:bg-white/10 text-white border border-white/15 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-gear text-xs"></i>
+                    <span class="header-action-label">Settings</span>
+                </button>
+                <button onclick="toggleRfqModal(true)" class="formal-cta px-5 py-2.5 rounded-lg text-sm font-semibold transition-all active:scale-95 flex items-center gap-2">
+                    <i class="fa-solid fa-paper-plane text-xs"></i>
+                    <span class="header-action-label">Request Enterprise Quote</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div id="settings-panel" class="settings-panel hidden">
+        <div class="settings-header p-4 border-b border-slate-200">
+            <div class="flex items-center justify-between">
+                <h3 class="text-base font-semibold text-slate-800">System Settings</h3>
+                <button onclick="toggleSettingsPanel()" class="text-slate-500 hover:text-slate-800"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+        </div>
+        <div class="p-4 space-y-4">
+            <details class="settings-group">
+                <summary>General</summary>
+                <div class="settings-row">
+                    <div>
+                        <label>Currency</label>
+                        <small>Local pricing</small>
+                    </div>
+                    <select id="setting-currency" onchange="setCurrency(this.value)">
+                        <option value="AED">AED</option>
+                        <option value="USD">USD</option>
+                    </select>
+                </div>
+                <div class="settings-row">
+                    <div>
+                        <label>Graphics mode</label>
+                        <small>3D render quality</small>
+                    </div>
+                    <select id="setting-graphics" onchange="applySettings()">
+                        <option value="high">High Quality</option>
+                        <option value="performance">Performance</option>
+                    </select>
+                </div>
+                <div class="settings-row">
+                    <div>
+                        <label>Temperature</label>
+                        <small>Thermal units</small>
+                    </div>
+                    <select id="setting-temp" onchange="applySettings()">
+                        <option value="C">°C</option>
+                        <option value="F">°F</option>
+                    </select>
+                </div>
+                <div class="settings-row">
+                    <div>
+                        <label>Dimension</label>
+                        <small>PCB sizing</small>
+                    </div>
+                    <select id="setting-dimension" onchange="applySettings()">
+                        <option value="mm">Metric</option>
+                        <option value="in">Imperial</option>
+                    </select>
+                </div>
+            </details>
+
+            <details class="settings-group">
+                <summary>Thermal Simulation</summary>
+                <div class="settings-row slider-row">
+                    <div style="width: 100%;">
+                        <label>Ambient temperature</label>
+                        <small>Simulator baseline</small>
+                        <input id="setting-ambient" type="range" min="15" max="55" value="28" onchange="applySettings()">
+                    </div>
+                </div>
+                <div class="settings-row slider-row">
+                    <div style="width: 100%;">
+                        <label>Thermal ramp rate</label>
+                        <small>Runaway acceleration</small>
+                        <input id="setting-ramp" type="range" min="1" max="10" value="5" onchange="applySettings()">
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <div>
+                        <label>Trigger speed</label>
+                        <small>Response visualiser</small>
+                    </div>
+                    <select id="setting-trigger" onchange="applySettings()">
+                        <option value="Balanced">Balanced</option>
+                        <option value="Fast">Fast</option>
+                        <option value="Critical">Critical</option>
+                    </select>
+                </div>
+            </details>
+
+            <details class="settings-group">
+                <summary>Appearance &amp; Language</summary>
+                <div class="settings-row">
+                    <div>
+                        <label>UI theme</label>
+                        <small>Visual mode</small>
+                    </div>
+                    <select id="setting-theme" onchange="applySettings()">
+                        <option value="Corporate Light">Corporate Light</option>
+                        <option value="Bench Dark">Bench Dark</option>
+                    </select>
+                </div>
+                <div class="settings-row">
+                    <div>
+                        <label>Language</label>
+                        <small>Site copy</small>
+                    </div>
+                    <select id="setting-language" onchange="applySettings()">
+                        <option value="en">English</option>
+                        <option value="ar">Arabic</option>
+                        <option value="fr">French</option>
+                        <option value="zh-CN">Chinese</option>
+                        <option value="ru">Russian</option>
+                        <option value="es">Spanish</option>
+                    </select>
+                </div>
+            </details>
+
+            <details class="settings-group">
+                <summary>Profile &amp; Telemetry</summary>
+                <div class="settings-row">
+                    <div>
+                        <label>RFQ profile</label>
+                        <small>Auto-fill facility data</small>
+                    </div>
+                    <div class="toggle-wrap">
+                        <span class="small-note">Stored</span>
+                        <span id="rfq-profile-toggle" class="toggle-switch on" onclick="toggleProfileSetting(this)"></span>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <div>
+                        <label>Live telemetry</label>
+                        <small>WebUSB / Serial bridge</small>
+                    </div>
+                    <div class="toggle-wrap">
+                        <span id="telemetry-toggle" class="toggle-switch" onclick="toggleTelemetry(this)"></span>
+                    </div>
+                </div>
+            </details>
+        </div>
+    </div>
+
+    <!-- Main Hero Section -->
+    <section id="home" class="pt-28 pb-16 lg:pt-36 lg:pb-24 relative overflow-hidden">
+        <!-- Ambient background lighting -->
+        <div class="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-brand-blue/15 blur-[140px] pointer-events-none rounded-full"></div>
+        <div class="absolute top-1/3 right-10 w-[400px] h-[400px] bg-cyan-500/10 blur-[120px] pointer-events-none rounded-full"></div>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+            <div class="grid grid-cols-1 gap-12 items-center">
+                
+                <!-- Hero Left Column: Copy & Value Proposition -->
+
+                    <h1 class="text-4xl sm:text-5xl lg:text-5xl font-extrabold tracking-tight text-white leading-[1.15]">
+                        Sub-50μs Analog <br>
+                        <span class="bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">Thermal Defence</span> System
+                    </h1>
+
+                    <p class="text-slate-300 text-base leading-relaxed">
+                        Precision ultra-fast thermal circuit isolation engineered for critical electrical infrastructure. Designed around the high-speed LM393 dual comparator and TMP36 analog core to eliminate micro-controller reboot delays, firmware vulnerabilities, and trip latency.
+                    </p>
+
+                    <!-- Key Spec Highlights Badge Array -->
+                    <div class="hero-highlights grid grid-cols-2 gap-3 pt-2">
+                        <div class="glass-card p-3 rounded-lg flex items-center gap-3">
+                            <div class="w-8 h-8 rounded bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                                <i class="fa-solid fa-bolt text-sm"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs text-slate-400 font-medium">Trip Latency</div>
+                                <div class="text-sm font-bold text-white code-font">&lt; 50 Microseconds</div>
+                            </div>
+                        </div>
+                        <div class="glass-card p-3 rounded-lg flex items-center gap-3">
+                            <div class="w-8 h-8 rounded bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                                <i class="fa-solid fa-shield-halved text-sm"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs text-slate-400 font-medium">Relay Contact</div>
+                                <div class="text-sm font-bold text-white code-font">250V AC / 9V Conv</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex flex-wrap items-center gap-4 pt-4">
+                        <button onclick="toggleRfqModal(true)" class="bg-brand-blue hover:bg-blue-600 text-white px-6 py-3.5 rounded-xl font-semibold shadow-lg shadow-blue-900/30 transition-all flex items-center gap-2">
+                            <span>Request RFQ (From 149 AED)</span>
+                            <i class="fa-solid fa-arrow-right text-xs"></i>
+                        </button>
+                        <a href="#lab" class="glass-card hover:bg-slate-800/60 text-slate-200 border border-slate-700/60 px-6 py-3.5 rounded-xl font-semibold transition-all flex items-center gap-2">
+                            <i class="fa-solid fa-cube text-cyan-400"></i>
+                            <span>Explore 3D PCB</span>
+                        </a>
+                    </div>
+                    <hr class="my-6 border-slate-700/50">
+
+                </div>
+
+                <!-- Hero Right Column: 3D Interactive WebGL Viewer -->
+                <div class="w-full relative" id="lab">
+                    <div class="glass-card rounded-2xl p-2 relative overflow-hidden border border-slate-700/60 shadow-2xl">
+                        
+                        <!-- Top Toolbar inside 3D Viewport -->
+                        <div class="viewer-toolbar absolute top-4 left-4 right-4 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+                            <div class="pointer-events-auto flex items-center gap-2 bg-slate-900/90 backdrop-blur border border-slate-700/80 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-200">
+                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" id="status-indicator-dot"></span>
+                                <span id="status-text" class="code-font">SAFE: 28.4°C [NORMAL]</span>
+                            </div>
+
+                            <div class="pointer-events-auto flex items-center gap-2">
+                                <button id="btn-toggle-trip" onclick="toggleOverheatSimulation()" class="bg-rose-600/90 hover:bg-rose-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shadow flex items-center gap-1.5">
+                                    <i class="fa-solid fa-fire-flame-curved text-xs"></i>
+                                    <span id="trip-btn-text">Simulate Overheat</span>
+                                </button>
+                                <button id="btn-inspect-mode" onclick="toggleInspectMode()" class="bg-slate-800/90 hover:bg-slate-700 text-cyan-400 border border-slate-600 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5">
+                                    <i class="fa-solid fa-microscope text-xs"></i>
+                                    <span>Inspect Hotspots</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 3D Canvas Area -->
+                        <div class="w-full h-[480px] sm:h-[540px] rounded-xl overflow-hidden bg-[#0a0f1d] relative cursor-grab active:cursor-grabbing" id="canvas-container">
+                            <!-- Canvas will be dynamically injected here -->
+                            <div id="loading-spinner" class="absolute inset-0 flex flex-col items-center justify-center bg-[#060913]/90 z-30 transition-opacity duration-500">
+                                <div class="w-12 h-12 border-4 border-brand-blue border-t-cyan-400 rounded-full animate-spin mb-3"></div>
+                                <div class="text-sm font-semibold text-slate-300">Initializing 3D PCB Photorealistic Shader...</div>
+                                <div class="text-xs text-slate-500 font-mono mt-1">Mapping Physical Silkscreen & Traces</div>
+                            </div>
+                        </div>
+
+                        <!-- Bottom Controls Bar floating on canvas -->
+                        <div class="viewer-bottom-controls absolute bottom-4 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
+                            <div class="pointer-events-auto flex items-center gap-2 bg-slate-900/80 backdrop-blur px-3 py-1.5 rounded-lg border border-slate-800 text-xs text-slate-400">
+                                <i class="fa-solid fa-hand-pointer text-cyan-400"></i>
+                                <span>Drag to rotate • Scroll to zoom</span>
+                            </div>
+
+                            <div class="pointer-events-auto flex items-center gap-2">
+                                <div class="relative">
+                                    <button id="pcb-export-button" onclick="togglePcbExportMenu()" aria-expanded="false" aria-controls="pcb-export-menu" class="bg-slate-800/80 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-lg border border-slate-700/80 text-xs transition flex items-center gap-2">
+                                        <i class="fa-solid fa-download"></i>
+                                        <span>Export PCB</span>
+                                    </button>
+                                    <div id="pcb-export-menu" class="pcb-export-menu hidden" role="menu" aria-label="PCB model formats">
+                                        <button type="button" role="menuitem" onclick="downloadPcbModel('stl')">STL (.stl)</button>
+                                        <button type="button" role="menuitem" onclick="downloadPcbModel('obj')">OBJ (.obj)</button>
+                                        <button type="button" role="menuitem" onclick="downloadPcbModel('vrml')">VRML (.wrl)</button>
+                                    </div>
+                                </div>
+                                <button onclick="toggleAutoRotate()" id="btn-autorotate" class="bg-slate-800/80 hover:bg-slate-700 text-slate-300 p-2 rounded-lg border border-slate-700/80 text-xs transition" title="Toggle Auto Rotate">
+                                    <i class="fa-solid fa-rotate"></i>
+                                </button>
+                                <button onclick="resetCameraView()" class="bg-slate-800/80 hover:bg-slate-700 text-slate-300 p-2 rounded-lg border border-slate-700/80 text-xs transition" title="Reset View Angle">
+                                    <i class="fa-solid fa-compress"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Component Telemetry Drawer (Displays details on component inspect click) -->
+                    <div id="component-tooltip" class="mt-4 glass-card p-4 rounded-xl border border-cyan-500/30 hidden transition-all duration-300">
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg bg-cyan-500/10 border border-cyan-500/40 flex items-center justify-center text-cyan-400 text-lg">
+                                    <i class="fa-solid fa-microchip" id="tooltip-icon"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-bold text-white" id="tooltip-title">LM393 Dual Differential Voltage Comparator</h4>
+                                    <p class="text-xs text-cyan-400 font-mono" id="tooltip-subtitle">Location: Center-Left IC (DIP-8)</p>
+                                </div>
+                            </div>
+                            <button onclick="hideTooltip()" class="text-slate-400 hover:text-white p-1">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                        <p class="text-xs text-slate-300 mt-2 leading-relaxed" id="tooltip-desc">
+                            Executes instantaneous analog threshold comparison against the reference set by the 5K potentiometer. Sub-1μs response latency with zero software delay.
+                        </p>
+                        <div class="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-slate-800 text-[11px]">
+                            <div><span class="text-slate-400 block">Response Time:</span> <span class="font-bold text-emerald-400 code-font" id="tooltip-stat1">&lt; 1.3 μs</span></div>
+                            <div><span class="text-slate-400 block">Operating Voltage:</span> <span class="font-bold text-white code-font" id="tooltip-stat2">2.0V to 36V</span></div>
+                            <div><span class="text-slate-400 block">Thermal Drift:</span> <span class="font-bold text-cyan-300 code-font" id="tooltip-stat3">0.1 mV/°C</span></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Product Value Matrix Section -->
+    <section class="py-20 bg-slate-950/60 border-y border-slate-800/60 relative" id="architecture">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-16">
+                <h2 class="text-xs font-bold text-cyan-400 uppercase tracking-widest mb-2">Architectural Superiority</h2>
+                <h3 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+                    Why Hardware-Level Analog Beats Digital MCUs
+                </h3>
+                <p class="text-slate-400 mt-4 text-sm sm:text-base">
+                    Traditional digital circuit breakers rely on microcontrollers that suffer from boot delays, ADC conversion lag, and code crashes. This system operates purely in continuous analog space.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Card 1 -->
+                <div class="glass-card p-6 rounded-2xl glass-card-hover relative">
+                    <div class="w-12 h-12 rounded-xl bg-brand-blue/20 border border-brand-blue/50 flex items-center justify-center text-cyan-400 text-xl mb-5">
+                        <i class="fa-solid fa-gauge-high"></i>
+                    </div>
+                    <h4 class="text-lg font-bold text-white mb-2">Instant Thermal Isolation</h4>
+                    <p class="text-slate-400 text-sm leading-relaxed mb-4">
+                        Direct analog feedback loop between the TMP36 sensor and LM393 comparator triggers protection relays in under 50 microseconds—stopping thermal runaway before sparks occur.
+                    </p>
+                    <div class="text-xs text-cyan-300 font-semibold flex items-center gap-1">
+                        <span>300x Faster than Digital Breakers</span>
+                        <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                    </div>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="glass-card p-6 rounded-2xl glass-card-hover relative">
+                    <div class="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center text-emerald-400 text-xl mb-5">
+                        <i class="fa-solid fa-sliders"></i>
+                    </div>
+                    <h4 class="text-lg font-bold text-white mb-2">5K Precision Calibration</h4>
+                    <p class="text-slate-400 text-sm leading-relaxed mb-4">
+                        Onboard 5K multi-turn trimmer potentiometer allows physical hardware tuning of thermal trip thresholds from 45°C to 125°C without software reprogramming.
+                    </p>
+                    <div class="text-xs text-emerald-400 font-semibold flex items-center gap-1">
+                        <span>Tamper-Proof Physical Tuning</span>
+                        <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                    </div>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="glass-card p-6 rounded-2xl glass-card-hover relative">
+                    <div class="w-12 h-12 rounded-xl bg-indigo-500/20 border border-indigo-500/50 flex items-center justify-center text-indigo-400 text-xl mb-5">
+                        <i class="fa-solid fa-plug-circle-bolt"></i>
+                    </div>
+                    <h4 class="text-lg font-bold text-white mb-2">High Load & AC Switching</h4>
+                    <p class="text-slate-400 text-sm leading-relaxed mb-4">
+                        Heavy-duty finned heat-sinked power driver coupled with 5-pin terminal blocks handles 250V AC mains cutoffs and 9V Conv / 5V DC control loops seamlessly.
+                    </p>
+                    <div class="text-xs text-indigo-300 font-semibold flex items-center gap-1">
+                        <span>Dual Isolated Rail Control</span>
+                        <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comparison Table: Analog vs Digital MCU -->
+            <div class="mt-16 glass-card rounded-2xl p-6 sm:p-8 overflow-x-auto">
+                <h4 class="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                    <i class="fa-solid fa-code-compare text-cyan-400"></i>
+                    <span>Technical Comparison: Analog vs. Microcontroller (MCU) Breakers</span>
+                </h4>
+                <table class="w-full text-left text-sm text-slate-300 min-w-[600px]">
+                    <thead>
+                        <tr class="border-b border-slate-800 text-slate-400 uppercase text-[11px] tracking-wider">
+                            <th class="py-3 px-4">Feature Parameter</th>
+                            <th class="py-3 px-4 text-cyan-400">Analog PCB</th>
+                            <th class="py-3 px-4 text-slate-400">Standard MCU Breaker</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/60 font-medium">
+                        <tr>
+                            <td class="py-3.5 px-4 text-white">Thermal Detection Latency</td>
+                            <td class="py-3.5 px-4 text-emerald-400 font-bold code-font">&lt; 50 Microseconds</td>
+                            <td class="py-3.5 px-4 text-slate-400 code-font">15ms - 120ms (ADC sampling)</td>
+                        </tr>
+                        <tr>
+                            <td class="py-3.5 px-4 text-white">Firmware Vulnerability Risk</td>
+                            <td class="py-3.5 px-4 text-emerald-400 font-bold">0% (Zero Code / Hardware Only)</td>
+                            <td class="py-3.5 px-4 text-rose-400">High (Buffer overflows, OS hangs)</td>
+                        </tr>
+                        <tr>
+                            <td class="py-3.5 px-4 text-white">Power Surge Recovery</td>
+                            <td class="py-3.5 px-4 text-emerald-400 font-bold">Instantaneous (Sub-ms)</td>
+                            <td class="py-3.5 px-4 text-slate-400">3-5 second MCU reboot delay</td>
+                        </tr>
+                        <tr>
+                            <td class="py-3.5 px-4 text-white">Calibration Method</td>
+                            <td class="py-3.5 px-4 text-slate-200">5K Potentiometer Trimmer</td>
+                            <td class="py-3.5 px-4 text-slate-400">Flash EEPROM configuration</td>
+                        </tr>
+                        <tr>
+                            <td class="py-3.5 px-4 text-white">High Temp Tolerance</td>
+                            <td class="py-3.5 px-4 text-emerald-400 font-bold">-40°C to +125°C Industrial</td>
+                            <td class="py-3.5 px-4 text-slate-400">-20°C to +85°C Commercial</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- ROI & Risk Mitigation Financial Calculator Section -->
+    <section class="py-20 relative overflow-hidden" id="roi">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+                
+                <!-- Left Column: Explanatory Copy -->
+                <div class="lg:col-span-5 space-y-6">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-xs font-semibold text-emerald-400">
+                        <i class="fa-solid fa-calculator"></i>
+                        <span>Enterprise Financial Modeling</span>
+                    </div>
+                    <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+                        Calculate Infrastructure Fire Prevention ROI
+                    </h2>
+                    <p class="text-slate-300 text-sm sm:text-base leading-relaxed">
+                        Electrical thermal overload remains the #1 cause of commercial facility fires in high-ambient temperature regions. Estimate the risk reduction savings for your facility portfolio.
+                    </p>
+
+                    <div class="space-y-3 pt-2">
+                        <div class="flex items-center gap-3 text-sm text-slate-300">
+                            <i class="fa-solid fa-circle-check text-emerald-400"></i>
+                            <span>Reduces insurance premium surcharges by up to 18%</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-sm text-slate-300">
+                            <i class="fa-solid fa-circle-check text-emerald-400"></i>
+                            <span>Prevents unscheduled server & industrial line downtime</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-sm text-slate-300">
+                            <i class="fa-solid fa-circle-check text-emerald-400"></i>
+                            <span>Full payback period usually achieved within 2.4 months</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Interactive Calculator Box -->
+                <div class="lg:col-span-7">
+                    <div class="glass-card p-6 sm:p-8 rounded-2xl border border-slate-700/80 shadow-2xl space-y-6">
+                        
+                        <!-- Currency & Unit Switcher Header -->
+                        <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+                            <h3 class="text-base font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-coins text-cyan-400"></i>
+                                <span>Facility Protection Model</span>
+                            </h3>
+
+                            <!-- Currency Switch -->
+                            <div class="flex items-center bg-slate-900 rounded-lg p-1 border border-slate-800 text-xs font-semibold">
+                                <button onclick="setCurrency('AED')" id="curr-aed" class="px-3 py-1 rounded-md bg-brand-blue text-white transition">AED (Dirhams)</button>
+                                <button onclick="setCurrency('USD')" id="curr-usd" class="px-3 py-1 rounded-md text-slate-400 hover:text-white transition">USD ($)</button>
+                            </div>
+                        </div>
+
+                        <!-- Slider 1: Number of Distribution Panels -->
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-xs font-semibold">
+                                <label class="text-slate-300">Number of Electrical Distribution Panels</label>
+                                <span class="text-cyan-400 code-font text-sm" id="val-panels">25 Panels</span>
+                            </div>
+                            <input type="range" min="1" max="250" value="25" id="slider-panels" oninput="calculateRoi()" class="w-full accent-cyan-400 bg-slate-800 h-2 rounded-lg cursor-pointer">
+                        </div>
+
+                        <!-- Slider 2: Estimated Downtime Cost per Hour -->
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-xs font-semibold">
+                                <label class="text-slate-300">Estimated Downtime / Outage Cost per Hour</label>
+                                <span class="text-cyan-400 code-font text-sm" id="val-downtime">15,000 AED</span>
+                            </div>
+                            <input type="range" min="1000" max="100000" step="1000" value="15000" id="slider-downtime" oninput="calculateRoi()" class="w-full accent-cyan-400 bg-slate-800 h-2 rounded-lg cursor-pointer">
+                        </div>
+
+                        <!-- Dynamic ROI Calculation Results -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-slate-800">
+                            <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800">
+                                <div class="text-[11px] text-slate-400 uppercase font-semibold">Total Hardware Investment</div>
+                                <div class="text-xl font-extrabold text-white code-font mt-1" id="res-investment">3,725 AED</div>
+                                <div class="text-[10px] text-slate-500 mt-1">149 AED per module</div>
+                            </div>
+
+                            <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800">
+                                <div class="text-[11px] text-slate-400 uppercase font-semibold">Annual Risk Exposure Prevented</div>
+                                <div class="text-xl font-extrabold text-emerald-400 code-font mt-1" id="res-prevented">180,000 AED</div>
+                                <div class="text-[10px] text-emerald-500/80 mt-1">Based on thermal mitigation</div>
+                            </div>
+
+                            <div class="bg-slate-900/80 p-4 rounded-xl border border-cyan-500/30">
+                                <div class="text-[11px] text-cyan-400 uppercase font-semibold">Est. Payback Period</div>
+                                <div class="text-xl font-extrabold text-cyan-300 code-font mt-1" id="res-payback">0.3 Months</div>
+                                <div class="text-[10px] text-cyan-400/80 mt-1">Immediate ROI gain</div>
+                            </div>
+                        </div>
+
+                        <div class="pt-2">
+                            <button onclick="toggleRfqModal(true)" class="w-full bg-gradient-to-r from-brand-blue to-cyan-500 hover:from-blue-600 hover:to-cyan-400 text-white font-semibold py-3.5 rounded-xl text-sm transition-all shadow-lg flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-file-invoice-dollar"></i>
+                                <span style="color: white;">Get Custom Enterprise Volume Quote</span>
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Full Technical Specifications & Downloads Section -->
+    <section class="py-20 bg-slate-950/80 border-t border-slate-800/80 relative" id="specs">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row md:items-end justify-between mb-12">
+                <div>
+                    <h2 class="text-xs font-bold text-cyan-400 uppercase tracking-widest mb-2">Detailed Engineering Specs</h2>
+                    <h3 class="text-3xl font-extrabold text-white tracking-tight">Technical Datasheet Summary</h3>
+                </div>
+                <div class="mt-4 md:mt-0 flex items-center gap-3">
+                    <button onclick="downloadDatasheetSim()" class="glass-card hover:bg-slate-800 text-slate-200 border border-slate-700 px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-2">
+                        <i class="fa-solid fa-file-pdf text-rose-400"></i>
+                        <span>Download Datasheet (PDF)</span>
+                    </button>
+                    <button onclick="downloadGerberSim()" class="glass-card hover:bg-slate-800 text-slate-200 border border-slate-700 px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-2">
+                        <i class="fa-solid fa-layer-group text-cyan-400"></i>
+                        <span>KiCad Gerber Package (.zip)</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Spec Group 1: Electrical Parameters -->
+                <div class="glass-card p-6 rounded-2xl border border-slate-800">
+                    <h4 class="text-base font-bold text-white mb-4 flex items-center gap-2 border-b border-slate-800 pb-3">
+                        <i class="fa-solid fa-microchip text-brand-blue"></i>
+                        <span>Onboard Core Components & Electrical Ratings</span>
+                    </h4>
+                    <div class="space-y-3 text-xs">
+                        <div class="flex justify-between py-1.5 border-b border-slate-800/50">
+                            <span class="text-slate-400">Comparator Core:</span>
+                            <span class="font-semibold text-white code-font">LM393 Precision Dual Comparator</span>
+                        </div>
+                        <div class="flex justify-between py-1.5 border-b border-slate-800/50">
+                            <span class="text-slate-400">Temperature Transducer:</span>
+                            <span class="font-semibold text-white code-font">TMP36 Analog Temp Sensor (TO-92)</span>
+                        </div>
+                        <div class="flex justify-between py-1.5 border-b border-slate-800/50">
+                            <span class="text-slate-400">Thermal Trimmer:</span>
+                            <span class="font-semibold text-white code-font">5K Potentiometer Trimmer (3-pin)</span>
+                        </div>
+                        <div class="flex justify-between py-1.5 border-b border-slate-800/50">
+                            <span class="text-slate-400">Power Transistor Stage:</span>
+                            <span class="font-semibold text-white code-font">TO-220 Heavy Duty + Black Finned Heatsink</span>
+                        </div>
+                        <div class="flex justify-between py-1.5 border-b border-slate-800/50">
+                            <span class="text-slate-400">Emergency Manual Override:</span>
+                            <span class="font-semibold text-white code-font">Tactile Tact Switch (EMR Push)</span>
+                        </div>
+                        <div class="flex justify-between py-1.5 border-b border-slate-800/50">
+                            <span class="text-slate-400">Status Output Displays:</span>
+                            <span class="font-semibold text-white code-font">Dual 5mm LED Domes (TRIP Red / SAFE Green)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Spec Group 2: Board Geometry & Ratings -->
+                <div class="glass-card p-6 rounded-2xl border border-slate-800">
+                    <h4 class="text-base font-bold text-white mb-4 flex items-center gap-2 border-b border-slate-800 pb-3">
+                        <i class="fa-solid fa-ruler-combined text-cyan-400"></i>
+                        <span>PCB Substrate & Terminal Interfaces</span>
+                    </h4>
+                    <div class="space-y-3 text-xs">
+                        <div class="flex justify-between py-1.5 border-b border-slate-800/50">
+                            <span class="text-slate-400">PCB Dimensions & Color:</span>
+                            <span class="font-semibold text-white code-font">100mm x 68mm x 1.6mm (Royal Blue)</span>
+                        </div>
+                        <div class="flex justify-between py-1.5 border-b border-slate-800/50">
+                            <span class="text-slate-400">Terminal Connector Block:</span>
+                            <span class="font-semibold text-white code-font">5-Pin High-Current Green Terminal</span>
+                        </div>
+                        <div class="flex justify-between py-1.5 border-b border-slate-800/50">
+                            <span class="text-slate-400">Connector Pinout (Top-Bottom):</span>
+                            <span class="font-semibold text-cyan-300 code-font">GND | 9V CONV | 250V AC | GND | 5V DC</span>
+                        </div>
+                        <div class="flex justify-between py-1.5 border-b border-slate-800/50">
+                            <span class="text-slate-400">Silkscreen Specifications:</span>
+                            <span class="font-semibold text-white code-font">Crisp White Ink</span>
+                        </div>
+                        <div class="flex justify-between py-1.5 border-b border-slate-800/50">
+                            <span class="text-slate-400">Mounting Hardware:</span>
+                            <span class="font-semibold text-white code-font">4 Corner Silver Ring Drill Holes (M3)</span>
+                        </div>
+                        <div class="flex justify-between py-1.5 border-b border-slate-800/50">
+                            <span class="text-slate-400">Operating Temperature:</span>
+                            <span class="font-semibold text-emerald-400 code-font">-40°C to +125°C Continuous</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Request for Quote (RFQ) Modal Window -->
+    <div id="rfq-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden transition-opacity duration-300">
+        <div class="glass-card bg-[#0b1329] border border-slate-700/80 rounded-2xl max-w-xl w-full p-6 sm:p-8 relative shadow-2xl">
+            <!-- Modal Close Button -->
+            <button onclick="toggleRfqModal(false)" class="absolute top-5 right-5 text-slate-400 hover:text-white text-lg p-1">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-10 h-10 rounded-xl bg-brand-blue/30 border border-brand-blue flex items-center justify-center text-cyan-400 text-lg">
+                    <i class="fa-solid fa-file-signature"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-white">Enterprise RFQ & Order Procurement</h3>
+                    <p class="text-xs text-slate-400">Analog Thermal Defence Module</p>
+                </div>
+            </div>
+
+            <!-- Tiered Pricing Badge -->
+            <div class="bg-slate-900/90 border border-cyan-500/30 p-3 rounded-xl mb-6 flex items-center justify-between text-xs">
+                <div>
+                    <span class="text-slate-400 block">Unit Enterprise Price</span>
+                    <span class="text-lg font-bold text-emerald-400 code-font">149 AED <span class="text-xs text-slate-400 font-normal">(~$40 USD)</span></span>
+                </div>
+                <div class="text-right">
+                    <span class="text-slate-400 block">Min. Order Qty</span>
+                    <span class="font-bold text-white code-font">10 Modules</span>
+                </div>
+            </div>
+
+            <form onsubmit="handleRfqSubmit(event)" class="space-y-4 text-xs">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1">Full Name *</label>
+                        <input type="text" required placeholder="e.g. Eng. Tariq Al-Mansoori" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-cyan-400">
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1">Corporate Email *</label>
+                        <input type="email" required placeholder="tariq@facility.ae" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-cyan-400">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1">Company / Facility Name</label>
+                        <input type="text" placeholder="Dubai Technology Park" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-cyan-400">
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1">Estimated Unit Quantity *</label>
+                        <select required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-cyan-400">
+                            <option value="10-50">10 - 50 Units (Pilot Evaluation)</option>
+                            <option value="51-200">51 - 200 Units (Commercial Facility)</option>
+                            <option value="201-1000">201 - 1,000 Units (Industrial Plant)</option>
+                            <option value="1000+">1,000+ Units (White Label OEM Branding)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-slate-300 font-medium mb-1">Custom Installation Requirements or Notes</label>
+                    <textarea rows="3" placeholder="Specify voltage rail requirements, Hassantuk gateway integration, or delivery location in UAE/GCC..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-cyan-400"></textarea>
+                </div>
+
+                <div class="pt-2">
+                    <button type="submit" class="w-full bg-gradient-to-r from-brand-blue via-blue-600 to-cyan-500 hover:from-blue-600 hover:to-cyan-400 text-white font-bold py-3.5 rounded-xl text-sm transition shadow-lg">
+                        Submit Enterprise Quote Request
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-notification" class="fixed bottom-6 right-6 z-50 glass-card bg-emerald-950/90 border border-emerald-500/50 p-4 rounded-xl shadow-2xl flex items-center gap-3 hidden transform transition-all duration-300">
+        <div class="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+            <i class="fa-solid fa-check"></i>
+        </div>
+        <div>
+            <div class="text-sm font-bold text-white" id="toast-title">Request Received!</div>
+            <div class="text-xs text-slate-300" id="toast-desc">An engineer will contact you within 2 hours.</div>
+        </div>
+    </div>
+
+    <section id="compliance" class="py-10 sm:py-14 border-t">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-xl sm:text-2xl font-bold text-slate-800 mb-5">Standards &amp; Impact</h2>
+            <div class="hero-compliance flex flex-wrap items-center gap-x-8 gap-y-3 text-sm text-slate-600">
+                <span class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-emerald-600"></i> Hassantuk Ready</span>
+                <span class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-emerald-600"></i> UAE Civil Defence Compliant</span>
+                <span class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-emerald-600"></i> SDG 9 &amp; 11</span>
+            </div>
+        </div>
+    </section>
+
+    <section id="viewer-section" class="py-10 sm:py-14 border-t">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div id="viewer-mount"></div>
+        </div>
+    </section>
+
+    <!-- Corporate Footer -->
+    <footer class="bg-[#04060d] border-t border-slate-800/80 py-12 text-slate-400 text-xs">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 pb-8 border-b border-slate-800/60">
+                <div class="space-y-3">
+                    <div class="flex items-center space-x-2 text-white font-bold text-base">
+                        <span>Analog Thermal Protection</span>
+                    </div>
+                    <p class="text-slate-500 text-xs leading-relaxed">
+                        Precision analog thermal protection systems engineered for industrial reliability and zero-latency hardware circuit isolation.
+                    </p>
+                </div>
+
+                <div>
+                    <h5 class="text-slate-200 font-semibold mb-3">Technology</h5>
+                    <ul class="space-y-2">
+                        <li><a href="#lab" class="hover:text-cyan-400 transition">3D Interactive PCB Viewer</a></li>
+                        <li><a href="#architecture" class="hover:text-cyan-400 transition">LM393 Comparator Logic</a></li>
+                        <li><a href="#specs" class="hover:text-cyan-400 transition">TMP36 Sensor Transducer</a></li>
+                        <li><a href="#specs" class="hover:text-cyan-400 transition">Gerber File Package</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h5 class="text-slate-200 font-semibold mb-3">Enterprise & Safety</h5>
+                    <ul class="space-y-2">
+                        <li><a href="#compliance" class="hover:text-cyan-400 transition">UAE Civil Defence Standards</a></li>
+                        <li><a href="#compliance" class="hover:text-cyan-400 transition">Hassantuk Readiness</a></li>
+                        <li><a href="#roi" class="hover:text-cyan-400 transition">Risk Mitigation Calculator</a></li>
+                        <li><a href="#roi" class="hover:text-cyan-400 transition">Insurance Premium Rebates</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h5 class="text-slate-200 font-semibold mb-3">Engineering Lab</h5>
+                    <p class="text-slate-400 leading-relaxed">
+                        Origin of Gems Modern Academy, Dubai<br>
+                        Created by Aviral Shukla<br>
+                        United Arab Emirates<br>
+                        <span class="text-cyan-400">For more info, contact +971 56 208 5269*</span>
+                    </p>
+                </div>
+            </div>
+
+            <div class="pt-8 flex flex-col sm:flex-row items-center justify-between text-slate-500">
+                <p>Analog Thermal Defence System.</p>
+                <div class="flex items-center space-x-6 mt-4 sm:mt-0">
+                    <span class="hover:text-slate-300 cursor-pointer">SDG 9 & 11 Certified</span>
+                    <span aria-hidden="true" class="text-2xl leading-none"><b>&middot;</b></span>
+                    <span class="hover:text-slate-300 cursor-pointer">RoHS Compliant</span>
+                    <span aria-hidden="true" class="text-2xl leading-none"><b>&middot;</b></span>
+                    <span class="hover:text-slate-300 cursor-pointer">*Spam calling is illegal and unethical, do not spam call this number. This is the creator's phone number.</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="cb-translations.js"></script>
+
+    <!-- JavaScript Application & 3D WebGL Engine Code -->
+    <script>
+        let scene, camera, renderer, controls;
+        let isTripped = false;
+        let autoRotateActive = false;
+        let inspectMode = false;
+        let pcbGroup;
+        let pcbSurfaceMesh;
+        let pcbSurfaceTexture;
+        let redLedLight, greenLedLight;
+        let redLedMesh, greenLedMesh;
+        let raycaster, mouse;
+        let selectedComponent = null;
+        const originalTextNodes = new Map();
+        const originalAttributes = new Map();
+
+        // Interactive component hot spots dictionary
+        const componentRegistry = [];
+
+        // Settings state and app configuration
+        let currentCurrency = 'AED';
+        const exchangeRateUsdToAed = 3.67;
+        const appSettings = {
+            currency: 'AED',
+            graphicsMode: 'high',
+            tempUnit: 'C',
+            dimensionUnit: 'mm',
+            compliance: 'All',
+            uiTheme: 'Corporate Light',
+            language: 'en',
+            rfqProfile: true,
+            telemetry: false,
+            ambientTemp: 28,
+            thermalRamp: 5,
+            triggerSpeed: 'Balanced'
+        };
+
+        function createPCBTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 2048;
+            canvas.height = 1392; // Approx ratio 10:6.8
+            const ctx = canvas.getContext('2d');
+
+            // 1. PCB Substrate Rich Royal Blue Background (#084182)
+            ctx.fillStyle = '#084182';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Subtle PCB fiberglass texture sheen lines
+            ctx.strokeStyle = '#0a4a94';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < canvas.width; i += 16) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i + 200, canvas.height);
+                ctx.stroke();
+            }
+
+            // 2. Copper Trace Artwork (etched traces in cyan/blue tones)
+            ctx.strokeStyle = '#125ab3';
+            ctx.lineWidth = 10;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            // Trace paths matching physical image layout
+            const traces = [
+                // Top left traces from TMP36 to LM393
+                [[250, 400], [450, 400], [550, 500], [650, 500]],
+                [[250, 480], [400, 480], [500, 600], [650, 600]],
+                // LM393 to Potentiometer
+                [[850, 500], [950, 500], [1000, 550], [1100, 550]],
+                // LM393 down to LEDs
+                [[650, 700], [500, 900], [500, 1100]],
+                [[750, 700], [750, 950], [800, 1100]],
+                // Traces to Heatsink and Terminal Block
+                [[1200, 500], [1400, 300], [1650, 300]],
+                [[1200, 650], [1450, 750], [1650, 750]],
+                [[1200, 800], [1400, 950], [1650, 950]],
+                // Bottom switch and DPAK traces
+                [[1050, 1050], [1200, 1050], [1350, 950]],
+                [[1400, 1050], [1550, 1050], [1650, 1150]]
+            ];
+
+            traces.forEach(path => {
+                ctx.beginPath();
+                ctx.moveTo(path[0][0], path[0][1]);
+                for (let i = 1; i < path.length; i++) {
+                    ctx.lineTo(path[i][0], path[i][1]);
+                }
+                ctx.stroke();
+            });
+
+            // 3. Solder Pads (Silver / Gold Metallic Circles & Rects)
+            ctx.fillStyle = '#d0d5dd';
+            ctx.strokeStyle = '#98a2b3';
+            ctx.lineWidth = 3;
+
+            function drawPad(x, y, r = 16) {
+                ctx.beginPath();
+                ctx.arc(x, y, r, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+            }
+
+            // Solder pads for TMP36 (3 pins)
+            drawPad(250, 400, 12);
+            drawPad(250, 480, 12);
+            drawPad(250, 560, 12);
+
+            // Solder pads for LM393 DIP-8 (8 pins)
+            for (let i = 0; i < 4; i++) {
+                drawPad(620 + i * 80, 480, 14);
+                drawPad(620 + i * 80, 680, 14);
+            }
+
+            // Solder pads for 5K Potentiometer (3 pins)
+            drawPad(1050, 720, 14);
+            drawPad(1130, 720, 14);
+            drawPad(1210, 720, 14);
+
+            // Solder pads for LEDs
+            drawPad(500, 1100, 16);
+            drawPad(580, 1100, 16);
+            drawPad(800, 1100, 16);
+            drawPad(880, 1100, 16);
+
+            // Solder pads for EMR Tactile Switch (4 corner pads)
+            drawPad(1050, 1000, 14);
+            drawPad(1250, 1000, 14);
+            drawPad(1050, 1180, 14);
+            drawPad(1250, 1180, 14);
+
+            // 4. Corner Mounting Screw Hole Rings (Silver)
+            const holes = [[140, 140], [1908, 140], [140, 1252], [1908, 1252]];
+            holes.forEach(([hx, hy]) => {
+                ctx.beginPath();
+                ctx.arc(hx, hy, 65, 0, Math.PI * 2);
+                ctx.fillStyle = '#b0b8c4';
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(hx, hy, 45, 0, Math.PI * 2);
+                ctx.fillStyle = '#060913'; // Hole center cut
+                ctx.fill();
+            });
+
+            // 5. Crisp White Silkscreen Text Overlay
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 36px Inter, sans-serif';
+            ctx.textAlign = 'center';
+
+            // Top Center Silkscreen Label
+            ctx.fillText('CB', 750, 160);
+
+            // Component Silkscreen Labels matching physical image
+            ctx.font = 'bold 22px Inter, sans-serif';
+            
+            // 5K POT label
+            ctx.fillText('5K POT', 1130, 800);
+            
+            // LED TRIP & LED SAFE labels
+            ctx.fillText('LED TRIP', 540, 1240);
+            ctx.fillText('LED SAFE', 840, 1240);
+
+            // EMR label above tactile button
+            ctx.fillText('EMR', 1150, 940);
+
+            // RESET & U2 labels near DPAK
+            ctx.fillText('RESET', 1420, 910);
+            ctx.fillText('U2', 1560, 950);
+
+            // Right Terminal Block Pin Labels (Vertically aligned along green block)
+            ctx.textAlign = 'right';
+            ctx.font = 'bold 24px Inter, sans-serif';
+            ctx.fillText('GND', 1780, 280);
+            ctx.fillText('9V CONV', 1780, 480);
+            ctx.fillText('250V AC', 1780, 680);
+            ctx.fillText('GND', 1780, 880);
+            ctx.fillText('5V DC', 1780, 1100);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.needsUpdate = true;
+            return texture;
+        }
+
+        function init3D() {
+            const container = document.getElementById('canvas-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0f1d);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 1000);
+            camera.position.set(0, 9, 9);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+            renderer.setSize(width, height);
+            const performanceMode = appSettings.graphicsMode === 'performance';
+            renderer.setPixelRatio(performanceMode ? 1 : Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = !performanceMode;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            // OrbitControls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxPolarAngle = Math.PI / 2.05; // Prevent camera from flipping below board
+            controls.minDistance = 3;
+            controls.maxDistance = 20;
+
+            // Raycaster for hotspot inspection
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+
+            // Lighting Setup
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+
+            // Directional Key Light
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+            dirLight.position.set(6, 12, 8);
+            dirLight.castShadow = !performanceMode;
+            dirLight.shadow.mapSize.width = 2048;
+            dirLight.shadow.mapSize.height = 2048;
+            scene.add(dirLight);
+
+            // Cool Blue Rim/Fill Light
+            const fillLight = new THREE.DirectionalLight(0x00f0ff, 0.4);
+            fillLight.position.set(-8, 5, -6);
+            scene.add(fillLight);
+
+            // Main PCB Group Container
+            pcbGroup = new THREE.Group();
+            scene.add(pcbGroup);
+
+            // 1. PCB Substrate Mesh with Rounded Corners & Corner Cutouts
+            const boardWidth = 10;
+            const boardDepth = 6.8;
+            const boardThickness = 0.2;
+            const radius = 0.4;
+
+            const shape = new THREE.Shape();
+            shape.moveTo(-boardWidth / 2 + radius, -boardDepth / 2);
+            shape.lineTo(boardWidth / 2 - radius, -boardDepth / 2);
+            shape.quadraticCurveTo(boardWidth / 2, -boardDepth / 2, boardWidth / 2, -boardDepth / 2 + radius);
+            shape.lineTo(boardWidth / 2, boardDepth / 2 - radius);
+            shape.quadraticCurveTo(boardWidth / 2, boardDepth / 2, boardWidth / 2 - radius, boardDepth / 2);
+            shape.lineTo(-boardWidth / 2 + radius, boardDepth / 2);
+            shape.quadraticCurveTo(-boardWidth / 2, boardDepth / 2, -boardWidth / 2, boardDepth / 2 - radius);
+            shape.lineTo(-boardWidth / 2, -boardDepth / 2 + radius);
+            shape.quadraticCurveTo(-boardWidth / 2, -boardDepth / 2, -boardWidth / 2 + radius, -boardDepth / 2);
+
+            // Hole Cutouts for Corner Screws
+            const holeRadius = 0.3;
+            const holePositions = [[-4.2, -2.7], [4.2, -2.7], [-4.2, 2.7], [4.2, 2.7]];
+            holePositions.forEach(([hx, hy]) => {
+                const holePath = new THREE.Path();
+                holePath.absarc(hx, hy, holeRadius, 0, Math.PI * 2, true);
+                shape.holes.push(holePath);
+            });
+
+            const extrudeSettings = {
+                depth: boardThickness,
+                bevelEnabled: true,
+                bevelSegments: 3,
+                steps: 1,
+                bevelSize: 0.02,
+                bevelThickness: 0.02
+            };
+
+            const pcbGeometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+            pcbGeometry.rotateX(Math.PI / 2); // Orient horizontal
+
+            // PCB Body Dark Royal Blue Material
+            const pcbBodyMat = new THREE.MeshStandardMaterial({
+                color: 0x084182,
+                roughness: 0.3,
+                metalness: 0.1
+            });
+
+            const pcbMesh = new THREE.Mesh(pcbGeometry, pcbBodyMat);
+            pcbMesh.receiveShadow = true;
+            pcbMesh.castShadow = true;
+            pcbGroup.add(pcbMesh);
+
+            // PCB Top Surface Silkscreen Overlay Plane
+            const useFlatBoardSurface = appSettings.graphicsMode === 'performance';
+            pcbSurfaceTexture = useFlatBoardSurface ? null : createPCBTexture();
+            const topPlaneGeo = new THREE.PlaneGeometry(boardWidth, boardDepth);
+            const topPlaneMat = new THREE.MeshStandardMaterial({
+                map: pcbSurfaceTexture,
+                color: useFlatBoardSurface ? 0x084182 : 0xffffff,
+                transparent: !useFlatBoardSurface,
+                roughness: 0.3,
+                metalness: 0.1
+            });
+            const topPlaneMesh = new THREE.Mesh(topPlaneGeo, topPlaneMat);
+            topPlaneMesh.rotation.x = -Math.PI / 2;
+            topPlaneMesh.position.y = 0.102; // Slightly above PCB top surface
+            pcbGroup.add(topPlaneMesh);
+            pcbSurfaceMesh = topPlaneMesh;
+
+
+            // --- Component 1: Green 5-Pin Terminal Block (Far Right) ---
+            const termGroup = new THREE.Group();
+            termGroup.position.set(4.2, 0.75, 0.0);
+
+            const termMain = new THREE.Mesh(
+                new THREE.BoxGeometry(1.1, 1.3, 5.2),
+                new THREE.MeshStandardMaterial({ color: 0x1e824c, roughness: 0.4 })
+            );
+            termMain.castShadow = true;
+            termGroup.add(termMain);
+
+            // 5 Top Screw Circular Cutouts
+            for (let i = 0; i < 5; i++) {
+                const zPos = -2.0 + i * 1.0;
+                const screw = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.2, 0.2, 0.05, 16),
+                    new THREE.MeshStandardMaterial({ color: 0xd0d5dd, metalness: 0.8, roughness: 0.2 })
+                );
+                screw.position.set(0, 0.66, zPos);
+                termGroup.add(screw);
+
+                // Wire entry holes on front side
+                const wireHole = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.4, 0.4, 0.5),
+                    new THREE.MeshStandardMaterial({ color: 0x111111 })
+                );
+                wireHole.position.set(-0.4, 0.0, zPos);
+                termGroup.add(wireHole);
+            }
+            pcbGroup.add(termGroup);
+            registerComponent(termGroup, '5-Pin Terminal Block', 'Far-Right Connector', 'High-current screw clamp terminal interfacing 250V AC mains, 9V Conv, and 5V DC control rails.');
+
+            // --- Component 2: Heavy-Duty Black Finned Heatsink & TO-220 Transistor (Top Right) ---
+            const heatsinkGroup = new THREE.Group();
+            heatsinkGroup.position.set(2.1, 1.1, -1.8);
+
+            // Main Heatsink Block
+            const hsBase = new THREE.Mesh(
+                new THREE.BoxGeometry(2.0, 1.8, 2.2),
+                new THREE.MeshStandardMaterial({ color: 0x1c1c1e, roughness: 0.3, metalness: 0.7 })
+            );
+            hsBase.castShadow = true;
+            heatsinkGroup.add(hsBase);
+
+            // Vertical Fins
+            for (let f = -0.8; f <= 0.8; f += 0.4) {
+                const fin = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.12, 2.0, 2.2),
+                    new THREE.MeshStandardMaterial({ color: 0x111113, roughness: 0.2, metalness: 0.8 })
+                );
+                fin.position.set(f, 0.1, 0);
+                heatsinkGroup.add(fin);
+            }
+
+            // TO-220 Metal Mounting Plate and Screw
+            const screwPlate = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.25, 0.25, 0.1, 16),
+                new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.9, roughness: 0.1 })
+            );
+            screwPlate.rotation.x = Math.PI / 2;
+            screwPlate.position.set(0, 0.3, 1.12);
+            heatsinkGroup.add(screwPlate);
+
+            pcbGroup.add(heatsinkGroup);
+            registerComponent(heatsinkGroup, 'Black Finned Heatsink (TO-220)', 'Top-Right Power Stage', 'High-surface-area extruded aluminum heatsink dissipating thermal loads during high-current AC fault isolation.');
+
+            // --- Component 3: LM393 DIP-8 IC Chip (Center Left) ---
+            const icGroup = new THREE.Group();
+            icGroup.position.set(-1.8, 0.28, -0.6);
+
+            // Black Epoxy Package
+            const icBody = new THREE.Mesh(
+                new THREE.BoxGeometry(1.2, 0.32, 0.8),
+                new THREE.MeshStandardMaterial({ color: 0x18181c, roughness: 0.6 })
+            );
+            icBody.castShadow = true;
+            icGroup.add(icBody);
+
+            // DIP Pin 1 Notch
+            const notch = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.08, 0.08, 0.05, 12),
+                new THREE.MeshStandardMaterial({ color: 0x080808 })
+            );
+            notch.position.set(-0.5, 0.16, 0);
+            icGroup.add(notch);
+
+            // 8 Metallic Dual-In-Line Pins
+            for (let i = 0; i < 4; i++) {
+                const xPos = -0.45 + i * 0.3;
+                [-0.45, 0.45].forEach(zPos => {
+                    const pin = new THREE.Mesh(
+                        new THREE.BoxGeometry(0.08, 0.25, 0.15),
+                        new THREE.MeshStandardMaterial({ color: 0xd0d5dd, metalness: 0.8, roughness: 0.2 })
+                    );
+                    pin.position.set(xPos, -0.12, zPos);
+                    icGroup.add(pin);
+                });
+            }
+            pcbGroup.add(icGroup);
+            registerComponent(icGroup, 'LM393 Dual Voltage Comparator', 'Center-Left DIP-8 IC', 'Ultra-fast dual voltage comparator processing real-time analog signals from TMP36 with sub-1.3μs response latency.');
+
+            // --- Component 4: Bright Blue 5K Potentiometer Trimmer (Center) ---
+            const potGroup = new THREE.Group();
+            potGroup.position.set(0.2, 0.4, -0.6);
+
+            // Blue Square Casing
+            const potBody = new THREE.Mesh(
+                new THREE.BoxGeometry(0.9, 0.6, 0.9),
+                new THREE.MeshStandardMaterial({ color: 0x1060d0, roughness: 0.3 })
+            );
+            potBody.castShadow = true;
+            potGroup.add(potBody);
+
+            // White Center Circular Screw Dial
+            const potDial = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.3, 0.3, 0.05, 24),
+                new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.2 })
+            );
+            potDial.position.set(0, 0.31, 0);
+            potGroup.add(potDial);
+
+            // Crosshead screw slot inside dial
+            const slot1 = new THREE.Mesh(
+                new THREE.BoxGeometry(0.4, 0.02, 0.06),
+                new THREE.MeshStandardMaterial({ color: 0x334155 })
+            );
+            slot1.position.set(0, 0.34, 0);
+            potGroup.add(slot1);
+            const slot2 = slot1.clone();
+            slot2.rotation.y = Math.PI / 2;
+            potGroup.add(slot2);
+
+            pcbGroup.add(potGroup);
+            registerComponent(potGroup, '5K Trimmer Potentiometer', 'Center Calibration Dial', 'High-precision multi-turn trimmer setting the reference voltage trip threshold for thermal activation between 45°C and 125°C.');
+
+            // --- Component 5: TMP36 Temperature Sensor (Far Left) ---
+            const tmpGroup = new THREE.Group();
+            tmpGroup.position.set(-3.8, 0.4, -0.6);
+
+            // TO-92 D-shaped Casing
+            const tmpBody = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.25, 0.25, 0.5, 16, 1, false, 0, Math.PI * 1.5),
+                new THREE.MeshStandardMaterial({ color: 0x151515, roughness: 0.5 })
+            );
+            tmpBody.castShadow = true;
+            tmpGroup.add(tmpBody);
+
+            // 3 Vertical Metallic Leads
+            for (let l = -0.15; l <= 0.15; l += 0.15) {
+                const leg = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.02, 0.02, 0.3, 8),
+                    new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.9 })
+                );
+                leg.position.set(l, -0.35, 0);
+                tmpGroup.add(leg);
+            }
+            pcbGroup.add(tmpGroup);
+            registerComponent(tmpGroup, 'TMP36 Precision Temp Sensor', 'Far-Left Sensor (TO-92)', 'Low-voltage precision centigrade temperature sensor producing linear 10mV/°C analog output directly fed to LM393.');
+
+            // --- Component 6 & 7: 5mm Red LED (TRIP) & Green LED (SAFE) (Bottom Left) ---
+            
+            // Red LED (LED TRIP)
+            const redLedGroup = new THREE.Group();
+            redLedGroup.position.set(-2.5, 0.35, 2.1);
+
+            const ledBezel1 = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.3, 0.32, 0.1, 16),
+                new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.8, roughness: 0.2 })
+            );
+            redLedGroup.add(ledBezel1);
+
+            redLedMesh = new THREE.Mesh(
+                new THREE.SphereGeometry(0.25, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2),
+                new THREE.MeshStandardMaterial({ color: 0x770000, transparent: true, opacity: 0.85, roughness: 0.1 })
+            );
+            redLedMesh.position.y = 0.05;
+            redLedGroup.add(redLedMesh);
+
+            redLedLight = new THREE.PointLight(0xff0000, 0, 3);
+            redLedLight.position.set(0, 0.3, 0);
+            redLedGroup.add(redLedLight);
+
+            pcbGroup.add(redLedGroup);
+            registerComponent(redLedGroup, 'LED TRIP (5mm Red)', 'Bottom-Left Visual Indicator', 'High-intensity red LED alert triggering upon thermal runaway event to visually confirm circuit lockdown.');
+
+            // Green LED (LED SAFE)
+            const greenLedGroup = new THREE.Group();
+            greenLedGroup.position.set(-1.0, 0.35, 2.1);
+
+            const ledBezel2 = ledBezel1.clone();
+            greenLedGroup.add(ledBezel2);
+
+            greenLedMesh = new THREE.Mesh(
+                new THREE.SphereGeometry(0.25, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2),
+                new THREE.MeshStandardMaterial({ color: 0x00e640, emissive: 0x00aa22, emissiveIntensity: 0.6, transparent: true, opacity: 0.85, roughness: 0.1 })
+            );
+            greenLedMesh.position.y = 0.05;
+            greenLedGroup.add(greenLedMesh);
+
+            greenLedLight = new THREE.PointLight(0x00ff44, 3.0, 3);
+            greenLedLight.position.set(0, 0.3, 0);
+            greenLedGroup.add(greenLedLight);
+
+            pcbGroup.add(greenLedGroup);
+            registerComponent(greenLedGroup, 'LED SAFE (5mm Green)', 'Bottom-Left Status Light', 'Continuous green power-good status LED confirming normal operational temperatures below trip setpoint.');
+
+            // --- Component 8: Tactile Push Button Switch (EMR) (Bottom Center) ---
+            const btnGroup = new THREE.Group();
+            btnGroup.position.set(0.8, 0.25, 1.9);
+
+            const btnBase = new THREE.Mesh(
+                new THREE.BoxGeometry(0.8, 0.15, 0.8),
+                new THREE.MeshStandardMaterial({ color: 0xc0c0c0, metalness: 0.8, roughness: 0.3 })
+            );
+            btnBase.castShadow = true;
+            btnGroup.add(btnBase);
+
+            const btnCap = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.25, 0.25, 0.2, 16),
+                new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.4 })
+            );
+            btnCap.position.y = 0.15;
+            btnGroup.add(btnCap);
+
+            pcbGroup.add(btnGroup);
+            registerComponent(btnGroup, 'EMR Push Button Switch', 'Bottom-Center Manual Switch', 'Emergency Manual Reset (EMR) tactile button allowing instant manual trip or system reset override.');
+
+            // --- Component 9: DPAK Power Transistor (RESET / U2) (Bottom Center-Right) ---
+            const dpakGroup = new THREE.Group();
+            dpakGroup.position.set(2.4, 0.2, 1.8);
+
+            const dpakTab = new THREE.Mesh(
+                new THREE.BoxGeometry(0.8, 0.05, 0.9),
+                new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 0.9, roughness: 0.1 })
+            );
+            dpakGroup.add(dpakTab);
+
+            const dpakBody = new THREE.Mesh(
+                new THREE.BoxGeometry(0.7, 0.2, 0.6),
+                new THREE.MeshStandardMaterial({ color: 0x1c1c1c, roughness: 0.5 })
+            );
+            dpakBody.position.set(0, 0.1, -0.1);
+            dpakGroup.add(dpakBody);
+
+            pcbGroup.add(dpakGroup);
+            registerComponent(dpakGroup, 'DPAK Power Transistor (U2 / RESET)', 'Bottom-Right Surface Mount', 'Surface-mount power switching transistor driving relay reset circuits and fault signal output.');
+
+            // --- Surface Mount (SMD) Resistors and Capacitors ---
+            const smdLocations = [
+                { pos: [-1.8, 0.12, -1.8], color: 0x111111 }, // SMD Resistor above LM393
+                { pos: [-1.2, 0.12, -1.8], color: 0xc2a672 }, // Ceramic Cap above LM393
+                { pos: [-2.2, 0.12, 0.5], color: 0x111111 },  // SMD Resistor below LM393
+                { pos: [-1.6, 0.12, 0.5], color: 0xc2a672 },  // Ceramic Cap below LM393
+                { pos: [-1.0, 0.12, 0.5], color: 0x111111 },  // SMD Resistor
+                { pos: [0.8, 0.12, -1.6], color: 0xc2a672 },   // Ceramic Cap near Pot
+                { pos: [-1.75, 0.12, 2.1], color: 0x111111 }, // SMD between LEDs
+                { pos: [1.8, 0.12, 1.8], color: 0x111111 }     // SMD near DPAK
+            ];
+
+            smdLocations.forEach(smd => {
+                const smdMesh = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.25, 0.08, 0.12),
+                    new THREE.MeshStandardMaterial({ color: smd.color, roughness: 0.3 })
+                );
+                smdMesh.position.set(...smd.pos);
+                pcbGroup.add(smdMesh);
+            });
+
+            // Initial Animation Entrance
+            pcbGroup.rotation.y = -Math.PI / 6;
+
+            // Remove Loading Spinner
+            document.getElementById('loading-spinner').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('loading-spinner').style.display = 'none';
+            }, 500);
+
+            // Add Event Listeners for Interaction
+            container.addEventListener('click', onCanvasClick);
+            window.addEventListener('resize', onWindowResize);
+
+            // Start Render Loop
+            animate();
+        }
+
+        function registerComponent(group, title, subtitle, desc) {
+            componentRegistry.push({ group, title, subtitle, desc });
+            group.userData = { title, subtitle, desc };
+        }
+
+        function togglePcbExportMenu() {
+            const menu = document.getElementById('pcb-export-menu');
+            const button = document.getElementById('pcb-export-button');
+            const isOpen = menu.classList.toggle('hidden') === false;
+            button.setAttribute('aria-expanded', String(isOpen));
+        }
+
+        function getPcbTriangles() {
+            if (!pcbGroup) throw new Error('The PCB model is not ready yet.');
+
+            const model = pcbGroup.clone(true);
+            model.rotation.set(0, 0, 0);
+            model.updateMatrixWorld(true);
+
+            const meshes = [];
+            model.traverse(object => {
+                if (!object.isMesh || !object.geometry.attributes.position) return;
+
+                const geometry = object.geometry;
+                const positions = geometry.attributes.position;
+                const indices = geometry.index;
+                const triangles = [];
+                const vertexCount = indices ? indices.count : positions.count;
+                const material = Array.isArray(object.material) ? object.material[0] : object.material;
+                const color = material && material.color ? material.color : new THREE.Color(0x999999);
+
+                for (let offset = 0; offset + 2 < vertexCount; offset += 3) {
+                    const triangle = [];
+                    for (let corner = 0; corner < 3; corner++) {
+                        const vertexIndex = indices ? indices.getX(offset + corner) : offset + corner;
+                        const vertex = new THREE.Vector3().fromBufferAttribute(positions, vertexIndex);
+                        vertex.applyMatrix4(object.matrixWorld).multiplyScalar(10);
+                        triangle.push(vertex);
+                    }
+                    triangles.push(triangle);
+                }
+
+                if (triangles.length) meshes.push({ triangles, color });
+            });
+
+            return meshes;
+        }
+
+        function downloadPcbModel(format) {
+            try {
+                const meshes = getPcbTriangles();
+                let contents;
+                let extension;
+                let mimeType;
+
+                if (format === 'stl') {
+                    extension = 'stl';
+                    mimeType = 'model/stl';
+                    const facets = ['solid analog_thermal_pcb'];
+                    meshes.forEach(mesh => mesh.triangles.forEach(triangle => {
+                        const normal = new THREE.Vector3()
+                            .subVectors(triangle[1], triangle[0])
+                            .cross(new THREE.Vector3().subVectors(triangle[2], triangle[0]))
+                            .normalize();
+                        facets.push(` facet normal ${normal.x} ${normal.y} ${normal.z}`, '  outer loop');
+                        triangle.forEach(vertex => facets.push(`   vertex ${vertex.x} ${vertex.y} ${vertex.z}`));
+                        facets.push('  endloop', ' endfacet');
+                    }));
+                    facets.push('endsolid analog_thermal_pcb');
+                    contents = facets.join('\n');
+                } else if (format === 'obj') {
+                    extension = 'obj';
+                    mimeType = 'text/plain';
+                    const lines = ['# Analog thermal PCB model (millimetres)'];
+                    let vertexOffset = 1;
+                    meshes.forEach((mesh, meshIndex) => {
+                        lines.push(`o pcb_mesh_${meshIndex + 1}`);
+                        mesh.triangles.forEach(triangle => {
+                            triangle.forEach(vertex => lines.push(`v ${vertex.x} ${vertex.y} ${vertex.z}`));
+                            lines.push(`f ${vertexOffset} ${vertexOffset + 1} ${vertexOffset + 2}`);
+                            vertexOffset += 3;
+                        });
+                    });
+                    contents = lines.join('\n');
+                } else if (format === 'vrml') {
+                    extension = 'wrl';
+                    mimeType = 'model/vrml';
+                    const shapes = meshes.map(mesh => {
+                        const points = [];
+                        const faces = [];
+                        let vertexIndex = 0;
+                        mesh.triangles.forEach(triangle => {
+                            triangle.forEach(vertex => {
+                                points.push(`          ${vertex.x} ${vertex.y} ${vertex.z}`);
+                                faces.push(vertexIndex++);
+                            });
+                            faces.push(-1);
+                        });
+                        return `Shape {\n  appearance Appearance { material Material { diffuseColor ${mesh.color.r} ${mesh.color.g} ${mesh.color.b} } }\n  geometry IndexedFaceSet {\n    coord Coordinate { point [\n${points.join(',\n')}\n    ] }\n    coordIndex [ ${faces.join(' ')} ]\n  }\n}`;
+                    });
+                    contents = `#VRML V2.0 utf8\n# Analog thermal PCB model (millimetres)\n${shapes.join('\n')}`;
+                } else {
+                    throw new Error('Unsupported PCB export format.');
+                }
+
+                const blob = new Blob([contents], { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `analog_thermal_pcb.${extension}`;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+                document.getElementById('pcb-export-menu').classList.add('hidden');
+                document.getElementById('pcb-export-button').setAttribute('aria-expanded', 'false');
+            } catch (error) {
+                alert(error.message || 'Unable to export the PCB model.');
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (autoRotateActive && pcbGroup) {
+                pcbGroup.rotation.y += 0.005;
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('canvas-container');
+            if (!container) return;
+            const w = container.clientWidth;
+            const h = container.clientHeight;
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
+        }
+
+        function onCanvasClick(event) {
+            if (!inspectMode) return;
+
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(pcbGroup.children, true);
+
+            if (intersects.length > 0) {
+                let obj = intersects[0].object;
+                while (obj.parent && obj.parent !== pcbGroup && !obj.userData.title) {
+                    obj = obj.parent;
+                }
+                if (obj.userData && obj.userData.title) {
+                    showTooltip(obj.userData);
+                }
+            }
+        }
+
+        function toggleOverheatSimulation() {
+            isTripped = !isTripped;
+
+            const statusDot = document.getElementById('status-indicator-dot');
+            const statusText = document.getElementById('status-text');
+            const btnText = document.getElementById('trip-btn-text');
+
+            if (isTripped) {
+                // TRIP STATE
+                greenLedLight.intensity = 0;
+                greenLedMesh.material.emissiveIntensity = 0;
+
+                redLedLight.intensity = 5.0;
+                redLedMesh.material.emissive.setHex(0xff0000);
+                redLedMesh.material.emissiveIntensity = 1.0;
+
+                statusDot.className = 'w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping';
+                setLocalizableText(statusText, 'TRIP ALARM: 88.7°C [OVERHEAT TRIPPED!]');
+                statusText.className = 'code-font text-rose-400 font-bold';
+                setLocalizableText(btnText, 'Reset to SAFE Mode');
+
+            } else {
+                // SAFE STATE
+                greenLedLight.intensity = 3.0;
+                greenLedMesh.material.emissive.setHex(0x00aa22);
+                greenLedMesh.material.emissiveIntensity = 0.6;
+
+                redLedLight.intensity = 0;
+                redLedMesh.material.emissiveIntensity = 0;
+
+                statusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse';
+                setLocalizableText(statusText, 'SAFE: 28.4°C [NORMAL]');
+                statusText.className = 'code-font text-emerald-400 font-semibold';
+                setLocalizableText(btnText, 'Simulate Overheat');
+            }
+
+            requestPageTranslation(appSettings.language);
+        }
+
+        function toggleAutoRotate() {
+            autoRotateActive = !autoRotateActive;
+            document.getElementById('btn-autorotate').classList.toggle('text-cyan-400');
+        }
+
+        function resetCameraView() {
+            camera.position.set(0, 9, 9);
+            controls.target.set(0, 0, 0);
+            if (pcbGroup) pcbGroup.rotation.set(0, -Math.PI / 6, 0);
+        }
+
+        function toggleInspectMode() {
+            inspectMode = !inspectMode;
+            const btn = document.getElementById('btn-inspect-mode');
+            btn.classList.toggle('bg-cyan-500/20');
+            btn.classList.toggle('border-cyan-400');
+
+            if (inspectMode) {
+                showTooltip(componentRegistry[0].group.userData);
+            } else {
+                hideTooltip();
+            }
+        }
+
+        function setLocalizableText(element, text) {
+            element.textContent = text;
+            const textNode = Array.from(element.childNodes).find(child => child.nodeType === Node.TEXT_NODE);
+            if (textNode) originalTextNodes.set(textNode, text);
+        }
+
+        function showTooltip(data) {
+            const el = document.getElementById('component-tooltip');
+            setLocalizableText(document.getElementById('tooltip-title'), data.title);
+            setLocalizableText(document.getElementById('tooltip-subtitle'), data.subtitle);
+            setLocalizableText(document.getElementById('tooltip-desc'), data.desc);
+            el.classList.remove('hidden');
+            requestPageTranslation(appSettings.language);
+        }
+
+        function hideTooltip() {
+            document.getElementById('component-tooltip').classList.add('hidden');
+        }
+
+        function setCurrency(curr) {
+            currentCurrency = curr;
+            appSettings.currency = curr;
+            document.getElementById('setting-currency').value = curr;
+            document.getElementById('curr-aed').className = curr === 'AED' ? 'px-3 py-1 rounded-md bg-brand-blue text-white transition' : 'px-3 py-1 rounded-md text-slate-400 hover:text-white transition';
+            document.getElementById('curr-usd').className = curr === 'USD' ? 'px-3 py-1 rounded-md bg-brand-blue text-white transition' : 'px-3 py-1 rounded-md text-slate-400 hover:text-white transition';
+            calculateRoi();
+        }
+
+        function calculateRoi() {
+            const panels = parseInt(document.getElementById('slider-panels').value);
+            const downtimeRate = parseInt(document.getElementById('slider-downtime').value);
+
+            document.getElementById('val-panels').innerText = `${panels} ${getLocalizedCopy('Panels')}`;
+            document.getElementById('val-downtime').innerText = currentCurrency === 'AED' ? `${downtimeRate.toLocaleString()} AED` : `$${Math.round(downtimeRate / exchangeRateUsdToAed).toLocaleString()}`;
+
+            const unitCostAed = 149;
+            const totalCostAed = panels * unitCostAed;
+            const preventedAed = panels * 0.48 * downtimeRate;
+            const paybackMonths = (totalCostAed / (preventedAed / 12)).toFixed(1);
+
+            const currSymbol = currentCurrency === 'AED' ? 'AED' : '$';
+            const mult = currentCurrency === 'AED' ? 1 : (1 / exchangeRateUsdToAed);
+
+            document.getElementById('res-investment').innerText = `${Math.round(totalCostAed * mult).toLocaleString()} ${currSymbol}`;
+            document.getElementById('res-prevented').innerText = `${Math.round(preventedAed * mult).toLocaleString()} ${currSymbol}`;
+            document.getElementById('res-payback').innerText = `${Math.max(0.1, paybackMonths)} ${getLocalizedCopy('Months')}`;
+        }
+
+        function toggleRfqModal(show) {
+            const modal = document.getElementById('rfq-modal');
+            if (show) {
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        function cToF(value) {
+            return (value * 9 / 5) + 32;
+        }
+
+        function mmToIn(value) {
+            return value / 25.4;
+        }
+
+        function getLocalizedCopy(sourceText) {
+            return window.cbTranslations?.[appSettings.language]?.[sourceText] || sourceText;
+        }
+
+        function applyGraphicsSettings() {
+            const performanceMode = appSettings.graphicsMode === 'performance';
+
+            if (renderer) {
+                renderer.setPixelRatio(performanceMode ? 1 : Math.min(window.devicePixelRatio, 2));
+                renderer.shadowMap.enabled = !performanceMode;
+                renderer.shadowMap.needsUpdate = true;
+                scene.traverse(object => {
+                    if (object.isLight && object.type === 'DirectionalLight') {
+                        object.castShadow = !performanceMode && object.position.x > 0;
+                    }
+                });
+            }
+
+            if (!pcbSurfaceMesh) return;
+
+            const material = pcbSurfaceMesh.material;
+            if (performanceMode) {
+                material.map = null;
+                material.color.setHex(0x084182);
+                material.transparent = false;
+                if (pcbSurfaceTexture) {
+                    pcbSurfaceTexture.dispose();
+                    pcbSurfaceTexture = null;
+                }
+            } else {
+                if (!pcbSurfaceTexture) pcbSurfaceTexture = createPCBTexture();
+                material.map = pcbSurfaceTexture;
+                material.color.setHex(0xffffff);
+                material.transparent = true;
+            }
+            material.needsUpdate = true;
+        }
+
+        function requestPageTranslation(language) {
+            const translations = window.cbTranslations?.[language];
+            const translationItems = [];
+            const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+            let node;
+
+            while ((node = walker.nextNode())) {
+                const parent = node.parentElement;
+                if (!parent || parent.closest('script, style, noscript, textarea, code, [translate="no"], [aria-hidden="true"]')) continue;
+                const original = originalTextNodes.get(node) ?? node.nodeValue;
+                if (!original.trim()) continue;
+                originalTextNodes.set(node, original);
+                const textNode = node;
+                translationItems.push({ original, apply: value => { textNode.nodeValue = value; } });
+            }
+
+            const titleNode = document.querySelector('head title')?.firstChild;
+            if (titleNode) {
+                const original = originalTextNodes.get(titleNode) ?? titleNode.nodeValue;
+                originalTextNodes.set(titleNode, original);
+                translationItems.push({ original, apply: value => { titleNode.nodeValue = value; } });
+            }
+
+            document.querySelectorAll('body [alt], body [placeholder], body [title], body [aria-label]').forEach(element => {
+                let saved = originalAttributes.get(element);
+                if (!saved) {
+                    saved = new Map();
+                    originalAttributes.set(element, saved);
+                }
+                ['alt', 'placeholder', 'title', 'aria-label'].forEach(attribute => {
+                    const value = saved.get(attribute) ?? element.getAttribute(attribute);
+                    if (!value?.trim()) return;
+                    saved.set(attribute, value);
+                    translationItems.push({ original: value, apply: translated => element.setAttribute(attribute, translated) });
+                });
+            });
+
+            if (language === 'en') {
+                translationItems.forEach(item => item.apply(item.original));
+                return;
+            }
+
+            translationItems.forEach(item => {
+                const prefix = item.original.match(/^\s*/)[0];
+                const suffix = item.original.match(/\s*$/)[0];
+                const translated = translations?.[item.original.trim()];
+                item.apply(`${prefix}${translated || item.original.trim()}${suffix}`);
+            });
+        }
+
+        function applySettings() {
+            appSettings.graphicsMode = document.getElementById('setting-graphics').value;
+            appSettings.tempUnit = document.getElementById('setting-temp').value;
+            appSettings.dimensionUnit = document.getElementById('setting-dimension').value;
+            appSettings.uiTheme = document.getElementById('setting-theme').value;
+            appSettings.language = document.getElementById('setting-language').value;
+            appSettings.ambientTemp = Number(document.getElementById('setting-ambient').value);
+            appSettings.thermalRamp = Number(document.getElementById('setting-ramp').value);
+            appSettings.triggerSpeed = document.getElementById('setting-trigger').value;
+            document.body.classList.toggle('dark-mode', appSettings.uiTheme === 'Bench Dark');
+            localStorage.setItem('cb-theme', appSettings.uiTheme === 'Bench Dark' ? 'dark' : 'light');
+            const isArabic = appSettings.language === 'ar';
+            document.body.classList.toggle('accessibility-mode', isArabic);
+            document.documentElement.lang = appSettings.language;
+            document.documentElement.dir = 'ltr';
+            applyGraphicsSettings();
+
+            if (appSettings.tempUnit === 'F') {
+                const safeTemp = cToF(appSettings.ambientTemp).toFixed(1);
+                const tripTemp = cToF(88.7).toFixed(1);
+                const threshold = cToF(60).toFixed(0);
+                document.getElementById('status-text').innerText = `SAFE: ${safeTemp}°F [NORMAL]`;
+                document.getElementById('tooltip-stat3').innerText = `${(0.1 * 9 / 5).toFixed(2)} mV/°F`;
+                document.getElementById('tooltip-stat1').innerText = '< 1.3 μs';
+                document.getElementById('tooltip-stat2').innerText = '2.0V to 36V';
+                if (document.getElementById('status-text').classList.contains('text-rose-400')) {
+                    document.getElementById('status-text').innerText = `TRIP ALARM: ${tripTemp}°F [OVERHEAT TRIPPED!]`;
+                }
+                document.getElementById('setting-language').title = `Trip threshold approx ${threshold}°F`;
+            } else {
+                document.getElementById('status-text').innerText = `SAFE: ${appSettings.ambientTemp.toFixed(1)}°C [NORMAL]`;
+                document.getElementById('tooltip-stat3').innerText = '0.1 mV/°C';
+                if (document.getElementById('status-text').classList.contains('text-rose-400')) {
+                    document.getElementById('status-text').innerText = 'TRIP ALARM: 88.7°C [OVERHEAT TRIPPED!]';
+                }
+            }
+
+            if (appSettings.dimensionUnit === 'in') {
+                const dims = mmToIn(100).toFixed(2) + ' in × ' + mmToIn(68).toFixed(2) + ' in × ' + mmToIn(1.6).toFixed(2) + ' in';
+                const dimsNode = document.querySelector('.dim-spec');
+                if (dimsNode) dimsNode.innerText = dims;
+            } else {
+                const dimsNode = document.querySelector('.dim-spec');
+                if (dimsNode) dimsNode.innerText = '100mm x 68mm x 1.6mm';
+            }
+
+            calculateRoi();
+            updateRfqProfileState();
+            return requestPageTranslation(appSettings.language);
+        }
+
+        function toggleSettingsPanel() {
+            const panel = document.getElementById('settings-panel');
+            const button = document.getElementById('settings-button');
+            const isHidden = panel.classList.toggle('hidden');
+            button.setAttribute('aria-expanded', String(!isHidden));
+        }
+
+        function toggleMobileNavigation() {
+            const nav = document.getElementById('primary-nav');
+            const button = document.getElementById('mobile-nav-button');
+            const isOpen = nav.classList.toggle('open');
+            button.setAttribute('aria-expanded', String(isOpen));
+            button.setAttribute('aria-label', isOpen ? 'Close navigation' : 'Open navigation');
+            button.innerHTML = `<i class="fa-solid fa-${isOpen ? 'xmark' : 'bars'}"></i>`;
+        }
+
+        document.getElementById('primary-nav').addEventListener('click', event => {
+            if (event.target.closest('a') && document.getElementById('primary-nav').classList.contains('open')) {
+                toggleMobileNavigation();
+            }
+        });
+
+        function toggleProfileSetting(el) {
+            appSettings.rfqProfile = !appSettings.rfqProfile;
+            el.classList.toggle('on', appSettings.rfqProfile);
+        }
+
+        function updateRfqProfileState() {
+            const toggle = document.getElementById('rfq-profile-toggle');
+            if (toggle) toggle.classList.toggle('on', appSettings.rfqProfile);
+        }
+
+        function toggleTelemetry(el) {
+            appSettings.telemetry = !appSettings.telemetry;
+            el.classList.toggle('on', appSettings.telemetry);
+            if (appSettings.telemetry) {
+                document.getElementById('status-text').innerText = 'LIVE TRACE: USB link ready';
+            }
+        }
+
+        document.addEventListener('click', function (event) {
+            const panel = document.getElementById('settings-panel');
+            const button = document.getElementById('settings-button');
+            if (!panel.classList.contains('hidden') && !panel.contains(event.target) && !button.contains(event.target)) {
+                toggleSettingsPanel();
+            }
+        });
+
+        function handleRfqSubmit(e) {
+            e.preventDefault();
+            toggleRfqModal(false);
+            
+            const toast = document.getElementById('toast-notification');
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 4000);
+        }
+
+        function downloadDatasheetSim() {
+            alert('Downloading TEAM_NTC_Analog_Thermal_Breaker_Datasheet_v2.4.pdf');
+        }
+
+        function downloadGerberSim() {
+            alert('Downloading TEAM_NTC_PCB_Gerber_Manufacturing_Files.zip');
+        }
+
+        const savedTheme = localStorage.getItem('cb-theme');
+        if (savedTheme === 'dark') {
+            document.body.classList.add('dark-mode');
+            document.getElementById('setting-theme').value = 'Bench Dark';
+        }
+
+        document.getElementById('viewer-mount').appendChild(document.getElementById('lab'));
+        document.getElementById('specs').after(document.getElementById('roi'));
+
+        // Initialize 3D WebGL scene on page load
+        window.onload = function() {
+            init3D();
+            calculateRoi();
+        };
+    </script>
+</body>
+</html>

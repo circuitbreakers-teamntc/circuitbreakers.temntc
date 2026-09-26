@@ -1705,7 +1705,7 @@
         </div>
     </footer>
 
-    <script src="cb-translations.js"></script>
+    <script src="script.js"></script>
 
     <!-- JavaScript Application & 3D WebGL Engine Code -->
     <script>
@@ -2590,7 +2590,7 @@
         }
 
         function getLocalizedCopy(sourceText) {
-            return window.cbTranslations?.[appSettings.language]?.[sourceText] || sourceText;
+            return window.cb?.[appSettings.language]?.[sourceText] || sourceText;
         }
 
         function applyGraphicsSettings() {
